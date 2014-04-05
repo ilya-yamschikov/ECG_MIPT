@@ -36,6 +36,9 @@ while(my $line = <HEADER_FILE>) {
 		if (exists $REASONS{$reason}) {
 			print $REASONS{$reason}{$mode}
 		}
-		else {print "UNKNOWN"}
+		else {
+			if ($mode eq "include") {print 0}
+			else {print "UNKNOWN"}
+		}
 	}
 }
