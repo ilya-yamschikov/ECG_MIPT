@@ -1,5 +1,13 @@
-function [x, y_low, y_high, Fs] = read_ptbdb_ecg(filename, HighFrequencyLimit)
-   raw_ecg = csvread(filename);
+function [class, x, y_low, y_high, Fs] = read_ptbdb_ecg(dataset_name, HighFrequencyLimit)
+   data_filename = [dataset_name '.csv'];
+   description_filename = [dataset_name '.descr'];
+   description_file = fopen(description_filename, 'r');
+   if (description_file == -1)
+       disp(['cannot open ' description_filename]);
+   end
+   
+   class = fgetl(description_file);  
+   raw_ecg = csvread(data_filename);
    % frequency & time axis
    x = raw_ecg(:, 1);
    y = raw_ecg(:, 2);
@@ -11,4 +19,6 @@ function [x, y_low, y_high, Fs] = read_ptbdb_ecg(filename, HighFrequencyLimit)
    % ECG
    y_low = filter(b_low, a_low ,y);
    y_high = filter(b_high, a_high ,y);
+   
+   fclose(description_file);
 end
