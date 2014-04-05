@@ -13,7 +13,7 @@ while read p; do
 	SRC_DIR="${START_DIR}/${PTB_DB_SRC}/${SUBDIR}"
 	mkdir -p $TARGET_DIR
 	cd $SRC_DIR
-	#rdsamp -c -s 1 -p -r "${FILENAME}" > "${TARGET_FILE_SAMPLE}.csv"
+	rdsamp -c -s 1 -p -r "${FILENAME}" > "${TARGET_FILE_SAMPLE}.csv"
 	$START_DIR/read_headers.pl "${FILENAME}.hea" -c > "${TARGET_FILE_SAMPLE}.descr"
 	
 	# generate file with known classes
