@@ -13,7 +13,7 @@ function files = get_files_to_load_for_ptb()
         description_filename = [file_sample '.descr'];
         description_file = fopen(description_filename, 'r');
         class = fgetl(description_file); 
-        files{i} = {[file_sample '.csv'], class};
+        files{i} = {file_sample, class};
         fclose(description_file);
     end
     

@@ -1,5 +1,5 @@
 function value = feature_SpectralDensityOnDifferentBand(y, Fs)
-    BORDERS = [0 250 500 750 1000];
+    BORDERS = [200 250 300 400 500];
 
     % check if y is vector and get a row from it  
     if (isrow(y))

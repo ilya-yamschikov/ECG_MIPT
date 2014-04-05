@@ -1,8 +1,10 @@
 addpath('features/');
-addpath('../lib/wfdb/mcode/');
+
+CUTOFF_FREQUENCY = 200;
 
 % file: indices in ecg record filenames, class of record
-FILES_TO_LOAD = {{[1 1], 'HEALTHY'}, {[2 1], 'HEALTHY'}, {[3 1], 'HEALTHY'}};
+% FILES_TO_LOAD = {{[1 1], 'HEALTHY'}, {[2 1], 'HEALTHY'}, {[3 1], 'HEALTHY'}};
+FILES_TO_LOAD = get_files_to_load_for_ptb();
 % feature: function, type, return values count
 FEATURES_TO_USE = {{@feature_RMS, 'NUMERIC', 1}, {@feature_SpectralDensityOnDifferentBand, 'NUMERIC', 4}};
 OUTPUT_FILE = '../out/data_set.arff';
@@ -15,16 +17,18 @@ for feature_idx = 1:length(FEATURES_TO_USE)
     feature = FEATURES_TO_USE{feature_idx};
     type = feature{2};
     for i = 1:feature{3}
-        fprintf(out_file, ['@ATTRIBUTE ' func2str(feature{1}) ' ' feature{2} '\n']); 
+        fprintf(out_file, ['@ATTRIBUTE ' func2str(feature{1}) num2str(i) ' ' feature{2} '\n']); 
     end
 end
-fprintf(out_file, '@ATTRIBUTE class {HEALTHY, ISHEMIC}\n\n'); 
+fprintf(out_file, '@ATTRIBUTE class {HEALTHY, MI}\n\n'); 
+fprintf(out_file, '@DATA\n'); 
 %
 
 for ecg_idx = 1:length(FILES_TO_LOAD)
     ecg_description = FILES_TO_LOAD{ecg_idx};
     file = ecg_description{1};
-    [x, y_low, y_high, Fs] = read_mouse_ecg(file);
+    %[x, y_low, y_high, Fs] = read_mouse_ecg(file);
+    [x, y_low, y_high, Fs] = read_ptbdb_ecg(file, CUTOFF_FREQUENCY);
     y = normalize_hfq_ecg(y_high);
     
     for feature_idx = 1:length(FEATURES_TO_USE)
