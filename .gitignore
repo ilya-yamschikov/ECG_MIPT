@@ -3,3 +3,4 @@ out/**
 lib/wfdb-exe/**
 lib/wfdb-matlab/**
 src/python/logs/**
+src/python/.idea/**
