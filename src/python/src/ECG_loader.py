@@ -2,6 +2,7 @@ import wave
 import struct
 import numpy as np
 import logging
+from scipy.signal import butter, filtfilt
 
 class MouseECG:
     def __init__(self, fileName):
@@ -36,3 +37,45 @@ class MouseECG:
 
     def getHighFreq(self):
         return np.array(self.data[0])
+
+class PTB_ECG:
+    SPLIT_FREQUENCY = 200.
+
+    def __init__(self, fileName):
+        descrFile = open(fileName + '.descr', 'r')
+        self.Class = descrFile.readline()
+        descrFile.close()
+        dataFile = open(fileName + '.csv', 'r')
+        x = []
+        y = []
+        for line in dataFile:
+            num = line.split(',')
+            assert len(num) == 2
+            x.append(float(num[0]))
+            y.append(float(num[1]))
+        self.timing = np.asarray(x)
+        self.y = np.asarray(y)
+        self.frequency = 1 / (self.timing[1] - self.timing[0])
+        self.lowFreq = self._filterSignal(self.y, self.SPLIT_FREQUENCY, filterType='lowpass')
+        self.highFreq = self._filterSignal(self.y, self.SPLIT_FREQUENCY, filterType='highpass')
+
+    def _filterSignal(self, y, fq, samplingFrequency=None, filterType='lowpass'):
+        if samplingFrequency is None:
+            samplingFrequency = self.frequency
+        b,a = butter(4, fq / (samplingFrequency / 2.), btype=filterType)
+        return filtfilt(b, a, y)
+
+    def getClass(self):
+        return self.Class
+
+    def getTiming(self):
+        return self.timing
+
+    def getDataFrequency(self):
+        return self.frequency
+
+    def getLowFreq(self):
+        return self.lowFreq
+
+    def getHighFreq(self):
+        return self.highFreq

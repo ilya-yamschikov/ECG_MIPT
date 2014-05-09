@@ -15,8 +15,8 @@ FEATURES_RUN = [
     {'feature': 'SpectralDensity', 'name': 'SpectralDensity4', 'options': {'normalized': True, 'begin': 400., 'end': 500.}}
 ]
 
-def importFeature(featureName):
-    nameSplit = featureName.split('.')
+def importClass(className):
+    nameSplit = className.split('.')
     module = '.'.join(nameSplit[0:-1])
     className = nameSplit[-1]
     mod = __import__(module, fromlist=[className])
@@ -25,7 +25,7 @@ def importFeature(featureName):
 def loadFeatures(features):
     featuresDict = {}
     for name, className in features.iteritems():
-        feature = importFeature(className)
+        feature = importClass(className)
         featuresDict[name] = feature
     return featuresDict
 
@@ -36,7 +36,6 @@ def updateRuns(featuresRun, featuresDict):
 
 def runFeatures(ecg, runList):
     result = []
-    logging.info('Running experiment %s on ECG %s' % (str(runList), str(ecg)))
     for featureRun in runList:
         feature = featureRun['feature']()
         options = featureRun['options'] if ('options' in featureRun) else {}
@@ -45,10 +44,14 @@ def runFeatures(ecg, runList):
     logging.info('Experiment result = %s' % str(result))
     return result
 
-def runExperiment(ecgFileNames, outFilename):
+def runExperiment(data_description, outFilename):
+    logging.info('Running experiment %s' % (str(FEATURES_RUN)))
+
     featuresDict = loadFeatures(FEATURES)
     featuresRun = FEATURES_RUN
     updateRuns(featuresRun, featuresDict)
+    loaderClass = importClass(data_description['loader'])
+    files = data_description['files']
 
     outStr = []
     outStr.append('%% auto generated file from PYTHON on %s\n' % str(datetime.datetime.now()))
@@ -58,8 +61,11 @@ def runExperiment(ecgFileNames, outFilename):
     outStr.append('@ATTRIBUTE class {HEALTHY, MI}\n')
     outStr.append('@DATA')
 
-    for ecgFileName in ecgFileNames:
-        ecg = MouseECG(ecgFileName)
+    counter = 0
+    for ecgFileName in files:
+        counter+=1
+        logging.info('Processing %d/%d file [%s]' % (counter, len(files), ecgFileName))
+        ecg = loaderClass(ecgFileName)
         featuresValues = runFeatures(ecg, FEATURES_RUN)
         outStr.append(', '.join(['%.5f' % v for v in featuresValues]) + ', ' + ecg.getClass())
 
