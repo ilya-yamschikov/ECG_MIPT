@@ -25,14 +25,22 @@ def generateSimpleLayout(y, sampling_frequency):
     main_fq = clc.getMainFrequency(y, sampling_frequency)
     beat_length = int(sampling_frequency / main_fq)
     layout = []
-    R = np.argmax(y)
+    R0 = np.argmax(y)
+    R = R0
     layout.append((R, 'R'))
     # right
     while R + int(1.5 * beat_length) < len(y):
         interval = y[int(R + 0.5 * beat_length):int(R + 1.5 * beat_length)]
         R = int(R + 0.5 * beat_length) + np.argmax(interval)
         layout.append((R, 'R'))
+    # left
+    R= R0
+    while R - int(1.5 * beat_length) >= 0:
+        interval = y[int(R - 1.5 * beat_length):int(R - 0.5 * beat_length)]
+        R = int(R - 1.5 * beat_length) + np.argmax(interval)
+        layout.append((R, 'R'))
     return layout
+
 
 def drawLayout(x,y,layout):
     types = set([t for __, t in layout])

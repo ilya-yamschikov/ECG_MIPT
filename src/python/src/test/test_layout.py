@@ -11,5 +11,5 @@ def test_simple_layout(ecg):
     layout = generateSimpleLayout(y, sampling_frequency)
     drawLayout(x, y, layout)
 
-ecg = PTB_ECG(r'..\..\..\..\data\ptb_database_csv\s0001_re')
+ecg = PTB_ECG(r'..\..\..\..\data\ptb_database_csv\s0012_re')
 test_simple_layout(ecg)
