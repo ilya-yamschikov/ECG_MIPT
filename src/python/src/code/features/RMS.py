@@ -1,6 +1,6 @@
 import logging
-import calculator as clc
-from features import BasicFeature
+import src.code.calculator as clc
+from src.code.features import BasicFeature
 
 class RMS(BasicFeature):
     type = 'NUMERIC'

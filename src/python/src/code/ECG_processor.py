@@ -1,6 +1,5 @@
 import datetime
 import logging
-from ECG_loader import MouseECG
 
 FEATURES = {
     'RMS': 'features.RMS.RMS',

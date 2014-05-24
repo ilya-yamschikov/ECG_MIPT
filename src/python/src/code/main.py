@@ -1,7 +1,9 @@
 import logging
 import time
 from os.path import split, join
-from ECG_processor import runExperiment
+
+from src.code.ECG_processor import runExperiment
+
 
 logging.basicConfig(level=logging.DEBUG,
                     filename=u'..\\logs\\main.log',

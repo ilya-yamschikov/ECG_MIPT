@@ -1,7 +1,9 @@
-import calculator as clc
 import numpy as np
 import logging
-from features import BasicFeature
+
+from src.code.features import BasicFeature
+import src.code.calculator as clc
+
 
 class SpectralDensity(BasicFeature):
     type = 'NUMERIC'
@@ -11,9 +13,11 @@ class SpectralDensity(BasicFeature):
 
     def run(self, ecg, begin=200.0, end=500.0, normalized=True):
         y = ecg.getHighFreq()
+        fq = ecg.getDataFrequency()
+        assert end <= fq / 2.
         if normalized:
             y = clc.normalize(y)
-        f = ecg.getDataFrequency()/2 * np.linspace(0.0, 1.0, len(y)/2 + 1)
+        f = fq / 2. * np.linspace(0.0, 1.0, len(y)/2 + 1)
         fft = np.absolute(np.fft.rfft(y)) / (0.5 * len(y))
         assert len(f) == len(fft), 'len f = %d, len fft = %d' % (len(f), len(fft))
         croppedFft = np.asarray([y for x,y in zip(f,fft) if begin < x and x < end])

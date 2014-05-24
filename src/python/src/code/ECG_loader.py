@@ -1,8 +1,11 @@
 import wave
 import struct
-import numpy as np
 import logging
-from scipy.signal import butter, filtfilt
+
+import numpy as np
+
+from src.code.calculator import filterSignal
+
 
 class MouseECG:
     def __init__(self, fileName):
@@ -56,14 +59,8 @@ class PTB_ECG:
         self.timing = np.asarray(x)
         self.y = np.asarray(y)
         self.frequency = 1 / (self.timing[1] - self.timing[0])
-        self.lowFreq = self._filterSignal(self.y, self.SPLIT_FREQUENCY, filterType='lowpass')
-        self.highFreq = self._filterSignal(self.y, self.SPLIT_FREQUENCY, filterType='highpass')
-
-    def _filterSignal(self, y, fq, samplingFrequency=None, filterType='lowpass'):
-        if samplingFrequency is None:
-            samplingFrequency = self.frequency
-        b,a = butter(4, fq / (samplingFrequency / 2.), btype=filterType)
-        return filtfilt(b, a, y)
+        self.lowFreq = filterSignal(self.y, self.SPLIT_FREQUENCY, self.frequency, filterType='lowpass')
+        self.highFreq = filterSignal(self.y, self.SPLIT_FREQUENCY, self.frequency, filterType='highpass')
 
     def getClass(self):
         return self.Class
