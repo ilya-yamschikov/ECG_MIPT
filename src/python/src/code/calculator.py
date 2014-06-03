@@ -40,11 +40,11 @@ def _try_lower_fq(fft, main_freq_idx):
 def getMainFrequency(x, sampling_frequency):
     fft = np.absolute(np.fft.rfft(x)) / (0.5 * len(x))
     reasonable_interval = map(lambda f: get_fft_idx_by_frequency(f, sampling_frequency, len(x)), REASONABLE_MAIN_FQ)
-    # plt.plot(fft, 'g-')
-    # plt.show()
+    plt.plot(fft, 'g-')
+    plt.show()
     fft_cropped = fft[reasonable_interval[0]:reasonable_interval[1]]
-    # plt.plot(fft, 'g-')
-    # plt.show()
+    plt.plot(fft_cropped, 'g-')
+    plt.show()
     fq_idx = reasonable_interval[0] + np.argmax(fft_cropped)
     while True:
         new_fq_idx = _try_lower_fq(fft, fq_idx)
@@ -53,16 +53,17 @@ def getMainFrequency(x, sampling_frequency):
         logging.debug('Updated main frequency candidate: %d -> %d' % (fq_idx, new_fq_idx))
         fq_idx = new_fq_idx
     main_freq = (sampling_frequency / 2.) * (fq_idx / float(len(x)/2))
-    logging.debug('Main component of signal: %f' % main_freq)
+    logging.debug('Main component of signal: %f (fft[%d])' % (main_freq, fq_idx))
     return main_freq
 
+def filter_to_range(x, sampling_fq, rng):
+    x = filterSignal(x, 5. * rng[0], sampling_fq, filterType='highpass')
+    x = filterSignal(x, 10. * rng[1], sampling_fq, filterType='lowpass')
+    return x
+
 def aline(x, sampling_frequency):
-    x = shift_on_zero(x)
-    freq = getMainFrequency(x, sampling_frequency)
-    trend_component = filterSignal(x, freq * .5, sampling_frequency, filterType='lowpass')
-    plt.plot(x, 'g-', trend_component, 'r-')
-    plt.show()
-    return x - trend_component
+    x = filter_to_range(x, sampling_frequency, REASONABLE_MAIN_FQ)
+    return x
 
 def RMS(x):
     return math.sqrt(x.dot(x) / len(x))
