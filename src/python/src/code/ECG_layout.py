@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import src.code.calculator as clc
+import src.code.WaveletProcessor as WP
 
 KNOWN_TYPES = {'P': {'plot_style': 'g^'},
                'R': {'plot_style': 'r^'}}
@@ -40,6 +41,16 @@ def generateSimpleLayout(y, sampling_frequency):
         R = int(R - 1.5 * beat_length) + np.argmax(interval)
         layout.append((R, 'R'))
     return layout
+
+
+def generate_modulus_maximum_layout(y, sampling_frequency):
+    scale = int(0.008 * sampling_frequency)
+    wt = WP.get_WT(y, scale)
+    wt = clc.normalize(wt)
+    mm = WP.get_mm_array(wt)
+    mm = WP.filter_mm_array(mm, wt)
+    THRESHOLD = 0.5
+
 
 
 def drawLayout(x,y,layout):
