@@ -1,4 +1,5 @@
 import logging
+import time
 import numpy as np
 import scipy.signal as sig
 import matplotlib.pyplot as plt
@@ -12,13 +13,14 @@ def get_WT(y, scale):
     if not isinstance(scale, (list, tuple)):
         scale = [scale]
     wavelet = sig.ricker
-    return sig.cwt(y, wavelet, scale)[0,:]
+    tt = time.time()
+    wt = sig.cwt(y, wavelet, scale)[0,:]
+    logging.debug('WT took %.3f sec to calculate on %s scale (signal length %d)', (time.time() - tt), str(scale), len(y))
+    return wt
 
 def is_modulus_maximum(w, i):
     if (i < 0) or (i >= len(w)):
         raise ValueError("i = %d, len(w) = %d" % (i, len(w)))
-
-    w = np.abs(w)
 
     if i == 0:
         left_side = None
@@ -40,9 +42,12 @@ def is_modulus_maximum(w, i):
 
 def get_mm_array(w):
     mm = []
-    for i in range(len(w)):
-        if is_modulus_maximum(w, i):
+    tt = time.time()
+    abs_w = np.abs(w)
+    for i in range(len(abs_w)):
+        if is_modulus_maximum(abs_w, i):
             mm.append(i)
+    logging.debug('MM took %.3f sec to calculate. Signal %d length -> %d MM', (time.time() - tt), len(w), len(mm))
     return np.array(mm)
 #--------
 # FILTERS

@@ -52,9 +52,10 @@ class VariousTests(ECGDependentTest):
         plt.show()
 
     def test_wavelet(self):
-        MOUSE = True
+        MOUSE = False
         # scales = np.array([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024])
-        scales = np.array([4, 8, 12, 16, 20, 24, 32])
+        scales = np.array([7])
+        # scales = np.array([4, 8, 12, 16, 20, 24, 32])
         # scales = np.array([48, 56, 64, 82, 100])
         if MOUSE:
             scales *= 44
@@ -62,7 +63,7 @@ class VariousTests(ECGDependentTest):
         else:
             ecg = self.ecg()
         # x, y, sample_fq = self._periodic_signal()
-        x, y, sample_fq = (ecg.getTiming(), -ecg.getLowFreq(), ecg.getDataFrequency())
+        x, y, sample_fq = (ecg.getTiming(), ecg.getLowFreq(), ecg.getDataFrequency())
         # y = aline(y, sample_fq)
         tt = time.time()
         # cwt = sig.cwt(y, sig.ricker, np.arange(1, 100, 2))

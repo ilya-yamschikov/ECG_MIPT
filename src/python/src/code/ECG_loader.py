@@ -1,13 +1,19 @@
 import wave
 import struct
 import logging
+import os
 
 import numpy as np
 
 from src.code.calculator import filterSignal
 
 
+def get_filename_without_extension(filename):
+    return os.path.basename(os.path.splitext(filename)[0])
+
 class MouseECG:
+    NORMAL_FILES = []
+
     def __init__(self, fileName):
         waveObj = wave.open(fileName, 'r')
         framesCount = waveObj.getnframes()
@@ -21,6 +27,7 @@ class MouseECG:
         raw_data = waveObj.readframes(framesCount)
         mixed_data = list(struct.unpack('=%dh' % (framesCount * channelsCount), raw_data))
 
+        self._inverted = get_filename_without_extension(fileName) not in self.NORMAL_FILES
         self.data = []
         for i in xrange(channelsCount):
             self.data.append(mixed_data[i::channelsCount])
@@ -36,12 +43,15 @@ class MouseECG:
         return self.timing
 
     def getLowFreq(self):
-        return np.array(self.data[1])
+        res = np.array(self.data[1])
+        return res if not self._inverted else -res
 
     def getHighFreq(self):
-        return np.array(self.data[0])
+        res = np.array(self.data[0])
+        return res if not self._inverted else -res
 
 class PTB_ECG:
+    INVERTED_FILES = ['s0010_re', 's0014lre', 's0016lre', 's0029lre', 's0043lre', 's0050lre', 's0054lre', 's0059lre', 's0082lre', 's0062lre']
     SPLIT_FREQUENCY = 200.
 
     def __init__(self, fileName):
@@ -49,6 +59,7 @@ class PTB_ECG:
         self.Class = descrFile.readline()
         descrFile.close()
         dataFile = open(fileName + '.csv', 'r')
+        self._inverted = get_filename_without_extension(fileName) in self.INVERTED_FILES
         x = []
         y = []
         for line in dataFile:
@@ -72,7 +83,9 @@ class PTB_ECG:
         return self.frequency
 
     def getLowFreq(self):
-        return self.lowFreq
+        res = self.lowFreq
+        return res if not self._inverted else -res
 
     def getHighFreq(self):
-        return self.highFreq
+        res = self.highFreq
+        return res if not self._inverted else -res

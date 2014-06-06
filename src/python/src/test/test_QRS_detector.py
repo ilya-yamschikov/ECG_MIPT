@@ -15,8 +15,9 @@ class QRSDetectorTest(ECGDependentTest):
         self._draw_QRS(peaks, wt, y)
 
     def test_R_peaks(self):
-        y = self.ecg().getLowFreq()
-        detector = WaveletBasedQRSDetector(y, self.ecg().getDataFrequency())
+        ecg = self.ecg()
+        y = ecg.getLowFreq()
+        detector = WaveletBasedQRSDetector(y, ecg.getDataFrequency())
         # detector.visualize_detector()
         wt = WP.get_WT(y, detector._get_R_peak_scale())
         peaks = detector.search_for_R_peaks()

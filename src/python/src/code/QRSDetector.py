@@ -20,7 +20,7 @@ class WaveletBasedQRSDetector(object):
         self._avg_mm = np.median(mm_abs_values)
 
     def _get_R_peak_scale(self):
-        return int(0.007 * self._sampling_fq)
+        return int(0.008 * self._sampling_fq)
 
     def _get_T_wave_scale(self):
         return int(0.064 * self._sampling_fq)
