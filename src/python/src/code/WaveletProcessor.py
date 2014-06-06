@@ -130,14 +130,19 @@ def draw_MM_lines(mm, y, wt=None):
         p[2].plot(wt, 'b-')
     plt.show()
 
-def draw_MM_strengths(mm, y, wt):
+def draw_MM_strengths(mm, y, wt, diffs=False, wavelet=None):
     assert isinstance(mm, (list, np.ndarray))
     __, p = plt.subplots(2, sharex=True)
     p[0].plot(y, 'g-')
-    p[1].plot(wt,'r-')
+    p[1].plot(wt,'b-')
+    if wavelet is not None:
+        p[1].plot(wavelet, 'r-')
     for i in range(len(mm)-1):
-        x = mm[i]
-        y = wt[mm[i]]
-        txt = str(np.abs(wt[mm[i]] - wt[mm[i+1]]))
-        p[1].text(x,y,txt)
+        _x = mm[i]
+        _y = wt[mm[i]]
+        if diffs:
+            txt = str(np.abs(wt[mm[i]] - wt[mm[i+1]]))
+        else:
+            txt = str(np.abs(wt[mm[i]]))
+        p[1].text(_x,_y,txt)
     plt.show()

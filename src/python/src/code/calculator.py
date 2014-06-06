@@ -65,8 +65,8 @@ def getMainFrequency(x, sampling_frequency):
     return main_freq
 
 def filter_to_range(x, sampling_fq, rng):
-    x = filterSignal(x, 5. * rng[0], sampling_fq, filterType='highpass')
-    x = filterSignal(x, 10. * rng[1], sampling_fq, filterType='lowpass')
+    x = filterSignal(x, rng[0], sampling_fq, filterType='highpass')
+    x = filterSignal(x, rng[1], sampling_fq, filterType='lowpass')
     return x
 
 def aline(x, sampling_frequency):

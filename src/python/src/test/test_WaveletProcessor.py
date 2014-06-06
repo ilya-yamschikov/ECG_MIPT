@@ -3,6 +3,7 @@ from src.code import WaveletProcessor as WP
 import matplotlib.pyplot as plt
 import numpy as np
 import src.code.calculator as clc
+import scipy.signal as sig
 
 
 class WPTest(ECGDependentTest):
@@ -24,9 +25,11 @@ class WPTest(ECGDependentTest):
         WP.draw_MM_lines(mm,y,wt)
 
     def test_draw_strengths(self):
-        y = self.ecg_mouse().getLowFreq()
-        wt = WP.get_WT(y, 3*44)
+        scale = 12
+        ecg = self.ecg()
+        y = ecg.getLowFreq()
+        wt = WP.get_WT(y, scale)
         wt = clc.normalize(wt, 'median_abs')
         mm = WP.get_mm_array(wt)
         mm = WP.filter_mm_array(mm, wt)
-        WP.draw_MM_strengths(mm, y, wt)
+        WP.draw_MM_strengths(mm, y, wt, wavelet=100*sig.ricker(scale*10, scale))

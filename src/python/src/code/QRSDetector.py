@@ -1,5 +1,6 @@
 import numpy as np
 import logging
+import matplotlib.pyplot as plt
 
 import src.code.WaveletProcessor as WP
 import src.code.calculator as clc
@@ -9,15 +10,20 @@ class WaveletBasedQRSDetector(object):
     def __init__(self, y, sampling_fq):
         self._y = y
         self._sampling_fq = sampling_fq
-        self._wt = WP.get_WT(self._y, self._get_wavelet_scale())
+        self._record_time = len(y) / sampling_fq
+        self._wt = WP.get_WT(self._y, self._get_R_peak_scale())
+        self._y, self._wt = self._clip_border_effects(self._y, self._wt)
         self._wt = clc.normalize(self._wt, 'median_abs')
         self._mm = WP.get_mm_array(self._wt)
         self._mm = WP.filter_mm_array(self._mm, self._wt)
         mm_abs_values = [np.abs(self._wt[mm_i]) for mm_i in self._mm]
         self._avg_mm = np.median(mm_abs_values)
 
-    def _get_wavelet_scale(self):
-        return 0.007 * self._sampling_fq
+    def _get_R_peak_scale(self):
+        return int(0.007 * self._sampling_fq)
+
+    def _get_T_wave_scale(self):
+        return int(0.064 * self._sampling_fq)
 
     def _get_high_search_limit(self, mm, wt):
         diffs = []
@@ -26,6 +32,14 @@ class WaveletBasedQRSDetector(object):
             diffs.append(diff)
         diffs = sorted(diffs)
         return diffs[-5]
+
+    def _clip_border_effects(self, y, wt):
+        scale = self._get_R_peak_scale()
+        clip = scale * 10 / 2 # half points size
+        y = y[clip:-clip]
+        wt = wt[clip:-clip]
+        self._clip_size = clip
+        return y, wt
 
     def _threshold_mm(self, mm, wt, threshold):
         peaks = []
@@ -41,7 +55,7 @@ class WaveletBasedQRSDetector(object):
                         peaks.append(mm[i])
         return peaks
 
-    def get_R_peaks(self, beta):
+    def _get_R_peaks(self, beta):
         threshold = self._avg_mm * beta
         mm = self._threshold_mm(self._mm, self._wt, threshold)
         return np.array(mm)
@@ -62,6 +76,20 @@ class WaveletBasedQRSDetector(object):
                 return False
         return True
 
+    def _adjust_peaks(self, peaks):
+        adjusted_peaks = []
+        for peak in peaks:
+            while (0 < peak < len(self._y) - 1) and \
+                  (not (self._y[peak-1] <= self._y[peak] >= self._y[peak+1])):
+                if self._y[peak-1] > self._y[peak]:
+                    peak -= 1
+                elif self._y[peak+1] > self._y[peak]:
+                    peak += 1
+                else:
+                    logging.error('Smth strange happened')
+            adjusted_peaks.append(peak)
+        return np.array(adjusted_peaks)
+
     def _get_value_to_optimize(self, mm):
         distances = []
         for i in range(1, len(mm)):
@@ -71,37 +99,54 @@ class WaveletBasedQRSDetector(object):
     def _find_minimum(self, function, value_function, interval, stop_condition):
         logging.info('Start minimum search on [%f, %f]', *interval)
         i = 1
-        while i < 100:
+        while i < 100 and (interval[1] - interval[0]) > 0.1:
             left_res = function(interval[0])
-            if stop_condition(left_res):
-                return left_res
             left_val = value_function(left_res)
             right_res = function(interval[1])
-            if stop_condition(right_res):
-                return right_res
             right_val = value_function(right_res)
             candidate1 = interval[0] + (interval[1] - interval[0]) / 4.
             candidate2 = interval[0] + (interval[1] - interval[0]) * 3. / 4.
             res1 = function(candidate1)
-            if stop_condition(res1):
-                return res1
+            # if stop_condition(res1):
+            #     logging.info('Found minimum at 1st candidate: %f', candidate1)
+            #     return res1
             res2 = function(candidate2)
-            if stop_condition(res2):
-                return res2
+            # if stop_condition(res2):
+            #     logging.info('Found minimum at 2nd candidate: %f', candidate2)
+            #     return res2
             value1 = value_function(res1)
             value2 = value_function(res2)
-            if (value1 > left_val and value1 > right_res) or (value2 > left_res and value2 > right_res)\
+            if (value1 > left_val and value1 > right_val) or (value2 > left_val and value2 > right_val)\
                     or (left_val < value1 and value1 > value2 and value2 < right_val)\
                     or (left_val > value1 and value1 < value2 and value2 > right_val):
-                logging.error('Minimum search error - non convex function')
+                logging.error('Minimum search error - non convex function: [%f, %f, %f, %f]', left_val, value1, value2, right_val)
             if value1 > value2:
                 interval = [candidate1, interval[1]]
             else:
                 interval = [interval[0], candidate2]
-            logging.info('Minimum search %d iteration is over - new interval [%f, %f]', i, interval)
+            logging.debug('Minimum search %d iteration is over - new interval [%f, %f]', i, *interval)
             i += 1
+        if not stop_condition(res1):
+            logging.error('Solution doesn\'t satisfy stop condition')
+        logging.info('Minimum search finished by %d iterations f(%f)=%f', i, candidate1, value1)
+        return res1
 
     def search_for_R_peaks(self):
-        interval = [.25, self._get_high_search_limit(self._mm, self._wt) / self._avg_mm]
-        peaks = self._find_minimum(self.get_R_peaks, self._get_value_to_optimize, interval, self._is_final_solution)
+        interval = [1., self._get_high_search_limit(self._mm, self._wt) / self._avg_mm]
+        peaks = self._find_minimum(self._get_R_peaks, self._get_value_to_optimize, interval, self._is_final_solution)
+        peaks = self._adjust_peaks(peaks)
+        peaks = peaks + self._clip_size # shift peaks as they were clipped
         return peaks
+
+    def _get_T_wave(self, R_peaks):
+        pulse_fq = len(R_peaks) / self._record_time
+        _smooth_y = clc.filter_to_range(self._y, self._sampling_fq, [pulse_fq / 1., pulse_fq * 15.])
+        plt.plot(_smooth_y, 'g-')
+        plt.show()
+
+    def visualize_detector(self):
+        __, p = plt.subplots(2, sharex=True)
+        p[0].plot(self._y, 'r-')
+        p[1].plot(self._wt, 'g-')
+        p[1].plot(self._mm, self._wt[self._mm], 'r^')
+        plt.show()

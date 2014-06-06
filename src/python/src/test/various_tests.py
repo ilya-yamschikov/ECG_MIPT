@@ -52,11 +52,17 @@ class VariousTests(ECGDependentTest):
         plt.show()
 
     def test_wavelet(self):
-        scales = np.array([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024])
-        # scales = np.array([1, 2, 4])
+        MOUSE = True
+        # scales = np.array([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024])
+        scales = np.array([4, 8, 12, 16, 20, 24, 32])
+        # scales = np.array([48, 56, 64, 82, 100])
+        if MOUSE:
+            scales *= 44
+            ecg = self.ecg_mouse()
+        else:
+            ecg = self.ecg()
         # x, y, sample_fq = self._periodic_signal()
-        x, y, sample_fq = (self.ecg().getTiming(), self.ecg().getLowFreq(), self.ecg().getDataFrequency())
-        # x, y, sample_fq = (self.ecg_mouse().getTiming(), -self.ecg_mouse().getLowFreq(), self.ecg_mouse().getDataFrequency())
+        x, y, sample_fq = (ecg.getTiming(), -ecg.getLowFreq(), ecg.getDataFrequency())
         # y = aline(y, sample_fq)
         tt = time.time()
         # cwt = sig.cwt(y, sig.ricker, np.arange(1, 100, 2))
@@ -71,10 +77,11 @@ class VariousTests(ECGDependentTest):
         plt.show()
 
     def test_draw_wavelet_ricker(self):
-        width = 15
+        width = 1
         points = int(10*width)
         w = sig.ricker(points, width)
-        plt.plot(np.linspace(0., 1., points) * width, w, 'r-')
+        # plt.plot(np.linspace(0., 1., points) * width, w, 'r-')
+        plt.plot(w, 'r-')
         plt.show()
 
     def test_draw_wavelet_morlet(self):
