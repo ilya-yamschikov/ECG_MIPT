@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 import src.code.calculator as clc
 import src.code.WaveletProcessor as WP
+from src.code.QRSDetector import WaveletBasedQRSDetector
 
 KNOWN_TYPES = {'P': {'plot_style': 'g^'},
                'R': {'plot_style': 'r^'}}
@@ -44,13 +45,10 @@ def generateSimpleLayout(y, sampling_frequency):
 
 
 def generate_modulus_maximum_layout(y, sampling_frequency):
-    scale = int(0.008 * sampling_frequency)
-    wt = WP.get_WT(y, scale)
-    wt = clc.normalize(wt)
-    mm = WP.get_mm_array(wt)
-    mm = WP.filter_mm_array(mm, wt)
-    THRESHOLD = 0.5
-
+    detector = WaveletBasedQRSDetector(y, sampling_frequency)
+    R_peaks = detector.search_for_R_peaks()
+    layout = [(peak, 'R') for peak in R_peaks]
+    return layout
 
 
 def drawLayout(x,y,layout):

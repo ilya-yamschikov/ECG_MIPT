@@ -28,6 +28,7 @@ class InvertedECGResolver(tk.Frame):
     def show_file(self):
         filename = self.full_files_names[self.i]
         ecg = PTB_ECG(filename)
+        plt.ion()
         __, p = plt.subplots(2, sharex=True)
         p[0].plot(ecg.getLowFreq(), 'g-')
         p[0].set_title('Normal')
@@ -45,7 +46,7 @@ class InvertedECGResolver(tk.Frame):
         logging.info('Inverted files: %s', str(self._inverted_files_list))
 
         self.i += 1
-        plt.close()
+        plt.close('all')
         self.show_file()
 
     def createForm(self):

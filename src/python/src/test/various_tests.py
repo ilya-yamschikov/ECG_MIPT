@@ -5,8 +5,17 @@ import numpy as np
 import scipy.signal as sig
 import matplotlib.pyplot as plt
 
-from src.code.calculator import getMainFrequency, aline
+from src.code.calculator import getMainFrequency, get_fft
 from src.test import ECGDependentTest
+
+
+def draw_cwt_as_img(y, cwt, scales):
+    __, axarr = plt.subplots(2, sharex=True)
+    axarr[0].plot(y, 'g-')
+    axarr[1].imshow(cwt, aspect='auto')
+    plt.yticks(range(0, len(scales)), [str(s) for s in scales])
+    plt.show()
+
 
 class VariousTests(ECGDependentTest):
 
@@ -36,13 +45,6 @@ class VariousTests(ECGDependentTest):
         # plt.show()
         print getMainFrequency(y, sample_fq)
 
-    def _draw_cwt_as_img(self, y, cwt, scales):
-        f, axarr = plt.subplots(2, sharex=True)
-        axarr[0].plot(y, 'g-')
-        axarr[1].imshow(cwt, aspect='auto')
-        plt.yticks(range(0, len(scales)), [str(s) for s in scales])
-        plt.show()
-
     def _draw_cwt_as_plots(self, y, cwt, scales):
         f, axarr = plt.subplots(1 + len(scales), sharex=True)
         axarr[0].plot(y, 'g-')
@@ -54,8 +56,7 @@ class VariousTests(ECGDependentTest):
     def test_wavelet(self):
         MOUSE = False
         # scales = np.array([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024])
-        scales = np.array([7])
-        # scales = np.array([4, 8, 12, 16, 20, 24, 32])
+        scales = np.array([4, 8, 12, 16, 20, 24, 32])
         # scales = np.array([48, 56, 64, 82, 100])
         if MOUSE:
             scales *= 44
@@ -78,11 +79,23 @@ class VariousTests(ECGDependentTest):
         plt.show()
 
     def test_draw_wavelet_ricker(self):
-        width = 1
+        width = .5
         points = int(10*width)
         w = sig.ricker(points, width)
         # plt.plot(np.linspace(0., 1., points) * width, w, 'r-')
         plt.plot(w, 'r-')
+        plt.show()
+
+    def test_fft_wavelet_ricker(self):
+        width = 1.
+        points = int(10*width)
+        w = sig.ricker(points, width)
+        fft, f = get_fft(w, 1000)
+        max_fq = np.argmax(fft)
+        logging.info('Peak frequency = %f', f[max_fq])
+        __, p = plt.subplots(2)
+        p[0].plot(w, 'r-')
+        p[1].plot(f, fft, 'g-')
         plt.show()
 
     def test_draw_wavelet_morlet(self):
@@ -102,4 +115,18 @@ class VariousTests(ECGDependentTest):
         # x, y, sample_fq = (self.ecg().getTiming(), self.ecg().getLowFreq(), self.ecg().getDataFrequency())
         x, y, sample_fq = (self.ecg_mouse().getTiming(), self.ecg_mouse().getLowFreq(), self.ecg_mouse().getDataFrequency())
         plt.plot(x,y,'g-')
+        plt.show()
+
+    def test_ultra_high_fq(self):
+        x_length = 70.
+        sampling_fq = 200
+        x = np.linspace(0., 1., sampling_fq * x_length) * x_length
+        y = np.sin(99. * x * (2. * np.pi))
+        # y = np.empty(len(x))
+        # for i in range(len(x)):
+        #     y[i] = 1. if (i % 4) < 2 else -1.
+        fft, f = get_fft(y, sampling_fq)
+        __, p = plt.subplots(2)
+        p[0].plot(x, y, 'r-')
+        p[1].plot(f, fft, 'g-')
         plt.show()

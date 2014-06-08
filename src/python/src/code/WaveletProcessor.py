@@ -10,13 +10,38 @@ MM_SCALES = [2, 8, 32, 64]
 
 
 def get_WT(y, scale):
-    if not isinstance(scale, (list, tuple)):
+    single_scale = not isinstance(scale, (list, tuple, np.ndarray))
+    if single_scale:
         scale = [scale]
     wavelet = sig.ricker
     tt = time.time()
-    wt = sig.cwt(y, wavelet, scale)[0,:]
+    wt = sig.cwt(y, wavelet, scale)
+    if single_scale:
+        wt = wt[0,:]
     logging.debug('WT took %.3f sec to calculate on %s scale (signal length %d)', (time.time() - tt), str(scale), len(y))
     return wt
+
+def fq_to_ricker_scale(fq, sampling_fq):
+    scale = sampling_fq * .2 / fq
+    if scale < .5:
+        logging.error('Ricker wavelet corrupted: scale = %f', scale)
+    return scale
+
+def ricker_scale_to_fq(scale, sampling_fq):
+    fq = sampling_fq * .2 / scale
+    return fq
+
+def fq_range_to_scales(fq_min, fq_max, sampling_fq, detalization=0.2):
+    scales_low = np.round(fq_to_ricker_scale(fq_max, sampling_fq), decimals=1)
+    scales_high = np.round(fq_to_ricker_scale(fq_min, sampling_fq), decimals=1)
+    # points = int(np.log(scales_high/scales_low) / np.log(1 + detalization))
+    # scales = np.arange(points + 1)
+    # scales = scales_low * ((1 + detalization) ** scales)
+    # scales = np.append(scales, scales_high)
+    scales = np.arange(scales_low, scales_high, detalization)
+    scales = np.round(scales, decimals=1)
+    scales = np.unique(scales)
+    return scales
 
 def is_modulus_maximum(w, i):
     if (i < 0) or (i >= len(w)):

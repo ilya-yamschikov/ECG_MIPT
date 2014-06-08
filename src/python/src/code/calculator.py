@@ -30,6 +30,11 @@ def shift_on_zero(x):
 def get_fft_idx_by_frequency(fq, sampling_frequency, signal_len):
     return int(2. * fq / sampling_frequency * (signal_len / 2))
 
+def get_fft(y, sampling_fq):
+    fft = np.abs(np.fft.rfft(y)) / (0.5 * len(y))
+    f = sampling_fq / 2. * np.linspace(0.0, 1.0, len(y)/2 + 1)
+    return fft, f
+
 def _is_local_max(x, idx, rng=3):
     if idx < 0 or idx >= len(x):
         raise ValueError('index %d out of bounds of x - len(x) = %d', (idx, len(x)))
