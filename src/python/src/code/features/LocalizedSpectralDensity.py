@@ -2,6 +2,7 @@ import numpy as np
 import logging
 import time
 
+import src.code.calculator as clc
 import src.code.WaveletProcessor as WP
 from src.code.features import BasicFeature
 from src.code.ECG_layout import generate_modulus_maximum_layout
@@ -23,7 +24,10 @@ class LocalizedSpectralDensity(BasicFeature):
             end = int(R_peaks[i] + slice_end * beat_size)
             wt_clipped = wt[:, begin:(end+1)]
             clip_time = float(end - begin) / sampling_fq
-            energy += np.sum(wt_clipped ** 2) * (float(clip_time) / wt_clipped.shape[1])
+            if (float(beat_size) / sampling_fq) > (60. / 250.): # pulse > 250 bps
+                energy += np.sum(wt_clipped ** 2) * (float(clip_time) / wt_clipped.shape[1])
+            else:
+                logging.error('Too small beat encountered: %f seconds', (float(beat_size) / sampling_fq))
         return energy * (float(scale_range_size) / wt.shape[0])
 
     def _calc_energy(self, y, R_peaks, sampling_fq, fq_begin, fq_end, slice_begin=0., slice_end=1., detalization=0.1):
@@ -73,10 +77,14 @@ class LocalizedSpectralDensity(BasicFeature):
 
         y_low = ecg.getLowFreq()
         y_high = ecg.getHighFreq()
+        if normalized:
+            y_high = clc.normalize(y_high)
         sampling_fq = ecg.getDataFrequency()
         assert fq_end < (sampling_fq / 2.) # cannot get higher resolution
-        layout = generate_modulus_maximum_layout(y_low, sampling_fq)
-        R_peaks = [point[0] for point in layout if point[1] == 'R']
+        if ecg.layout is None:
+            layout = generate_modulus_maximum_layout(y_low, sampling_fq)
+            ecg.layout = layout
+        R_peaks = [point[0] for point in ecg.layout if point[1] == 'R']
         if len(R_peaks) < 2:
             raise ValueError('Not enough beats detected: %d', len(R_peaks))
         energy = self._calc_energy(y_high, R_peaks, sampling_fq, fq_begin, fq_end, beat_begin, beat_end)

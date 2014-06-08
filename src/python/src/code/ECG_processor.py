@@ -1,9 +1,11 @@
 import datetime
 import logging
+import time
 
 FEATURES = {
     'RMS': 'features.RMS.RMS',
-    'SpectralDensity': 'features.SpectralDensity.SpectralDensity'
+    'SpectralDensity': 'features.SpectralDensity.SpectralDensity',
+    'LocalizedSpectralDensity': 'features.LocalizedSpectralDensity.LocalizedSpectralDensity'
 }
 
 FEATURES_RUN = [
@@ -11,7 +13,11 @@ FEATURES_RUN = [
     {'feature': 'SpectralDensity', 'name': 'SpectralDensity1', 'options': {'normalized': True, 'begin': 200., 'end': 250.}},
     {'feature': 'SpectralDensity', 'name': 'SpectralDensity2', 'options': {'normalized': True, 'begin': 250., 'end': 300.}},
     {'feature': 'SpectralDensity', 'name': 'SpectralDensity3', 'options': {'normalized': True, 'begin': 300., 'end': 400.}},
-    {'feature': 'SpectralDensity', 'name': 'SpectralDensity4', 'options': {'normalized': True, 'begin': 400., 'end': 500.}}
+    {'feature': 'SpectralDensity', 'name': 'SpectralDensity4', 'options': {'normalized': True, 'begin': 400., 'end': 500.}},
+    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity1', 'options': {'normalized': True, 'beat_begin': 0., 'beat_end': 0.25,'fq_begin': 200., 'fq_end': 400.}},
+    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity2', 'options': {'normalized': True, 'beat_begin': 0.25, 'beat_end': 0.5,'fq_begin': 200., 'fq_end': 400.}},
+    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity3', 'options': {'normalized': True, 'beat_begin': 0.5, 'beat_end': 0.75,'fq_begin': 200., 'fq_end': 400.}},
+    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity4', 'options': {'normalized': True, 'beat_begin': 0.75, 'beat_end': 1.,'fq_begin': 200., 'fq_end': 400.}}
 ]
 
 def importClass(className):
@@ -33,6 +39,13 @@ def updateRuns(featuresRun, featuresDict):
         featureName = run['feature']
         run['feature'] = featuresDict[featureName]
 
+def checkRuns(featuresRun):
+    name_set = set()
+    for run in featuresRun:
+        run_name = run['name']
+        assert run_name not in name_set, '"%s" name is not unique' % run_name
+        name_set.add(run_name)
+
 def runFeatures(ecg, runList):
     result = []
     for featureRun in runList:
@@ -48,6 +61,7 @@ def runExperiment(data_description, outFilename):
 
     featuresDict = loadFeatures(FEATURES)
     featuresRun = FEATURES_RUN
+    checkRuns(featuresRun)
     updateRuns(featuresRun, featuresDict)
     loaderClass = importClass(data_description['loader'])
     files = data_description['files']
@@ -64,8 +78,10 @@ def runExperiment(data_description, outFilename):
     for ecgFileName in files:
         counter+=1
         logging.info('Processing %d/%d file [%s]' % (counter, len(files), ecgFileName))
+        tt = time.time()
         ecg = loaderClass(ecgFileName)
         featuresValues = runFeatures(ecg, FEATURES_RUN)
+        logging.info('%d file processed in %.3f seconds', counter, (time.time() - tt))
         outStr.append(', '.join(['%.5f' % v for v in featuresValues]) + ', ' + ecg.getClass())
 
     outStr = '\n'.join(outStr)

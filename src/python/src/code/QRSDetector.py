@@ -44,7 +44,7 @@ class WaveletBasedQRSDetector(object):
     def _threshold_mm(self, mm, wt, threshold):
         peaks = []
         for i in range(1, len(mm)-1):
-            if wt[mm[i]] > 0 > wt[mm[i+1]]:
+            if wt[mm[i]] > 0 >= wt[mm[i+1]]:
                 diff_size = wt[mm[i]] - wt[mm[i+1]]
                 if wt[mm[i-1]] < 0:
                     prev_diff_size = wt[mm[i]] - wt[mm[i-1]]
@@ -53,6 +53,12 @@ class WaveletBasedQRSDetector(object):
                 else:
                     if diff_size > threshold:
                         peaks.append(mm[i])
+            if i > 1 and len(peaks) > 1:
+                if peaks[-2] == mm[i-2]: # neighbour peaks disallowed
+                    if wt[peaks[-2]] > wt[peaks[-1]]:
+                        del peaks[-1]
+                    else:
+                        del peaks[-2]
         return peaks
 
     def _get_R_peaks(self, beta):
@@ -93,13 +99,20 @@ class WaveletBasedQRSDetector(object):
     def _get_value_to_optimize(self, mm):
         distances = []
         for i in range(1, len(mm)):
-            distances.append(mm[i] - mm[i-1])
-        return np.std(distances)
+            distances.append((mm[i] - mm[i-1]) / float(self._sampling_fq)) # in seconds
+        mean_dst_sec = np.mean(distances)
+        if mean_dst_sec > (60. / 40.): # < 50 bps
+            strange_pulse_penalty = (mean_dst_sec - (60./40.)) ** 2
+        elif mean_dst_sec < (60. / 150.): # > 180 bps
+            strange_pulse_penalty = (1 / mean_dst_sec) - (150. / 60)
+        else:
+            strange_pulse_penalty = 0.
+        return np.std(distances) + strange_pulse_penalty
 
     def _find_minimum(self, function, value_function, interval, stop_condition):
         logging.info('Start minimum search on [%f, %f]', *interval)
         i = 1
-        while i < 100 and (interval[1] - interval[0]) > 0.1:
+        while i < 100 and (interval[1] - interval[0]) > 0.025:
             left_res = function(interval[0])
             left_val = value_function(left_res)
             right_res = function(interval[1])
@@ -126,10 +139,11 @@ class WaveletBasedQRSDetector(object):
                 interval = [interval[0], candidate2]
             logging.debug('Minimum search %d iteration is over - new interval [%f, %f]', i, *interval)
             i += 1
-        if not stop_condition(res1):
+        res = res1 if value1 < value2 else res2
+        if not stop_condition(res):
             logging.error('Solution doesn\'t satisfy stop condition')
         logging.info('Minimum search finished by %d iterations f(%f)=%f', i, candidate1, value1)
-        return res1
+        return res
 
     def search_for_R_peaks(self):
         interval = [1., self._get_high_search_limit(self._mm, self._wt) / self._avg_mm]

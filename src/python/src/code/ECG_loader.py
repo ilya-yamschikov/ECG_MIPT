@@ -28,6 +28,8 @@ class MouseECG:
         mixed_data = list(struct.unpack('=%dh' % (framesCount * channelsCount), raw_data))
 
         self._inverted = get_filename_without_extension(fileName) not in self.NORMAL_FILES
+        self.layout = None
+
         self.data = []
         for i in xrange(channelsCount):
             self.data.append(mixed_data[i::channelsCount])
@@ -60,6 +62,7 @@ class PTB_ECG:
         descrFile.close()
         dataFile = open(fileName + '.csv', 'r')
         self._inverted = get_filename_without_extension(fileName) in self.INVERTED_FILES
+        self.layout = None
         x = []
         y = []
         for line in dataFile:
