@@ -97,6 +97,9 @@ class WaveletBasedQRSDetector(object):
         return np.array(adjusted_peaks)
 
     def _get_value_to_optimize(self, mm):
+        if len(mm) < 1:
+            logging.error('Not enough mod maxes for value: %d', len(mm))
+            return np.inf
         distances = []
         for i in range(1, len(mm)):
             distances.append((mm[i] - mm[i-1]) / float(self._sampling_fq)) # in seconds

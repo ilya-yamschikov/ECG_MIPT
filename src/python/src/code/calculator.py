@@ -13,13 +13,18 @@ def filterSignal(y, fq, samplingFrequency, filterType='lowpass'):
     b,a = butter(4, fq / (samplingFrequency / 2.), btype=filterType)
     return filtfilt(b, a, y)
 
-def normalize(x, type='mean_abs'):
+def normalize(x, type='mean_abs', sampling_fq=None):
     if type == 'mean_abs':
         norm = np.mean(np.abs(x))
     elif type == 'RMS':
         norm = RMS(x)
     elif type == 'median_abs':
         norm = np.median(np.abs(x))
+    elif type == 'energy=1':
+        assert sampling_fq is not None
+        dt = 1. / sampling_fq
+        energy = np.sum(x ** 2) * dt
+        norm = np.sqrt(energy)
     else:
         raise ValueError('%s not supported' % type)
     return x / norm

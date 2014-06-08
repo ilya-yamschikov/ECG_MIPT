@@ -11,10 +11,17 @@ from src.code.calculator import filterSignal
 def get_filename_without_extension(filename):
     return os.path.basename(os.path.splitext(filename)[0])
 
-class MouseECG:
+class BasicECG:
+    def __init__(self):
+        self.layout = None
+        self._f = None
+        self._fft = None
+
+class MouseECG(BasicECG):
     NORMAL_FILES = []
 
     def __init__(self, fileName):
+        BasicECG.__init__(self)
         waveObj = wave.open(fileName, 'r')
         framesCount = waveObj.getnframes()
         self.frequency = waveObj.getframerate()
@@ -28,7 +35,6 @@ class MouseECG:
         mixed_data = list(struct.unpack('=%dh' % (framesCount * channelsCount), raw_data))
 
         self._inverted = get_filename_without_extension(fileName) not in self.NORMAL_FILES
-        self.layout = None
 
         self.data = []
         for i in xrange(channelsCount):
@@ -52,17 +58,17 @@ class MouseECG:
         res = np.array(self.data[0])
         return res if not self._inverted else -res
 
-class PTB_ECG:
+class PTB_ECG(BasicECG):
     INVERTED_FILES = ['s0010_re', 's0014lre', 's0016lre', 's0029lre', 's0043lre', 's0050lre', 's0054lre', 's0059lre', 's0082lre', 's0062lre']
     SPLIT_FREQUENCY = 200.
 
     def __init__(self, fileName):
+        BasicECG.__init__(self)
         descrFile = open(fileName + '.descr', 'r')
         self.Class = descrFile.readline()
         descrFile.close()
         dataFile = open(fileName + '.csv', 'r')
         self._inverted = get_filename_without_extension(fileName) in self.INVERTED_FILES
-        self.layout = None
         x = []
         y = []
         for line in dataFile:
@@ -72,6 +78,11 @@ class PTB_ECG:
             y.append(float(num[1]))
         self.timing = np.asarray(x)
         self.y = np.asarray(y)
+        # prime numbers problem - if len(y) is prime
+        # fft is calculated very slow (may be ~100 times slower)
+        if len(y) % 2 != 0:
+            self.timing = self.timing[:-1]
+            self.y = self.y[:-1]
         self.frequency = 1 / (self.timing[1] - self.timing[0])
         self.lowFreq = filterSignal(self.y, self.SPLIT_FREQUENCY, self.frequency, filterType='lowpass')
         self.highFreq = filterSignal(self.y, self.SPLIT_FREQUENCY, self.frequency, filterType='highpass')

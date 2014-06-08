@@ -3,7 +3,7 @@ import numpy as np
 
 from src.code.ECG_loader import PTB_ECG, MouseECG
 
-PTB_FILE = r'..\..\..\..\data\ptb_database_csv\s0150lre'
+PTB_FILE = r'..\..\..\..\data\ptb_database_csv\s0461_re'
 MOUSE_FILE = r'..\..\..\..\data\new_data\4_1.wav'
 
 

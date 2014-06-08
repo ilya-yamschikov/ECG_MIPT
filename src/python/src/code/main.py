@@ -33,5 +33,5 @@ logging.info('Program started')
 logging.info('===============')
 
 t = time.clock()
-runExperiment(data_ptb, r'..\..\..\out\py_out.arff')
+runExperiment(data_ptb, r'..\..\..\..\out\py_out.arff')
 logging.info('Program ended in %.3fs' % (time.clock() - t))

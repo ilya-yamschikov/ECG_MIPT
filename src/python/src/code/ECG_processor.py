@@ -1,6 +1,7 @@
 import datetime
 import logging
 import time
+import numpy as np
 
 FEATURES = {
     'RMS': 'features.RMS.RMS',
@@ -14,10 +15,10 @@ FEATURES_RUN = [
     {'feature': 'SpectralDensity', 'name': 'SpectralDensity2', 'options': {'normalized': True, 'begin': 250., 'end': 300.}},
     {'feature': 'SpectralDensity', 'name': 'SpectralDensity3', 'options': {'normalized': True, 'begin': 300., 'end': 400.}},
     {'feature': 'SpectralDensity', 'name': 'SpectralDensity4', 'options': {'normalized': True, 'begin': 400., 'end': 500.}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity1', 'options': {'normalized': True, 'beat_begin': 0., 'beat_end': 0.25,'fq_begin': 200., 'fq_end': 400.}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity2', 'options': {'normalized': True, 'beat_begin': 0.25, 'beat_end': 0.5,'fq_begin': 200., 'fq_end': 400.}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity3', 'options': {'normalized': True, 'beat_begin': 0.5, 'beat_end': 0.75,'fq_begin': 200., 'fq_end': 400.}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity4', 'options': {'normalized': True, 'beat_begin': 0.75, 'beat_end': 1.,'fq_begin': 200., 'fq_end': 400.}}
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity1', 'options': {'normalized': True, 'beat_begin': 0., 'beat_end': 0.25,'fq_begin': 200., 'fq_end': 400.}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity2', 'options': {'normalized': True, 'beat_begin': 0.25, 'beat_end': 0.5,'fq_begin': 200., 'fq_end': 400.}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity3', 'options': {'normalized': True, 'beat_begin': 0.5, 'beat_end': 0.75,'fq_begin': 200., 'fq_end': 400.}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity4', 'options': {'normalized': True, 'beat_begin': 0.75, 'beat_end': 1.,'fq_begin': 200., 'fq_end': 400.}}
 ]
 
 def importClass(className):
@@ -65,6 +66,7 @@ def runExperiment(data_description, outFilename):
     updateRuns(featuresRun, featuresDict)
     loaderClass = importClass(data_description['loader'])
     files = data_description['files']
+    np.random.shuffle(files)
 
     outStr = []
     outStr.append('%% auto generated file from PYTHON on %s\n' % str(datetime.datetime.now()))
@@ -77,6 +79,8 @@ def runExperiment(data_description, outFilename):
     counter = 0
     for ecgFileName in files:
         counter+=1
+        if counter > 200:
+            break
         logging.info('Processing %d/%d file [%s]' % (counter, len(files), ecgFileName))
         tt = time.time()
         ecg = loaderClass(ecgFileName)
