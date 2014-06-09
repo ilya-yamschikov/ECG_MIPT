@@ -18,8 +18,8 @@ class LocalizedSpectralDensity(BasicFeature):
         pass
 
     class WaveletBasedCalculator:
-        def __init__(self):
-            pass
+        def __init__(self, pulse_norm):
+            self._pulse_norm = pulse_norm
 
         def _integrate_wt(self, R_peaks, wt, sampling_fq, scale_range_size, slice_begin=0., slice_end=1.):
             energy = 0.
@@ -29,10 +29,10 @@ class LocalizedSpectralDensity(BasicFeature):
                 end = int(R_peaks[i] + slice_end * beat_size)
                 wt_clipped = wt[:, begin:(end+1)]
                 clip_time = float(end - begin) / sampling_fq
-                if (float(beat_size) / sampling_fq) > (60. / 250.): # pulse > 250 bps
+                if (float(beat_size) / sampling_fq) > (60. / self._pulse_norm['interval'][1]): # pulse > 250 bps
                     energy += np.sum(wt_clipped ** 2) * (float(clip_time) / wt_clipped.shape[1])
                 else:
-                    logging.error('Too small beat encountered: %f seconds', (float(beat_size) / sampling_fq))
+                    logging.error('Too small beat encountered: %f seconds < %f', (float(beat_size) / sampling_fq), (60. / self._pulse_norm['interval'][1]))
             return energy * (float(scale_range_size) / wt.shape[0])
 
         def calc_energy(self, y, R_peaks, sampling_fq, fq_begin, fq_end, slice_begin=0., slice_end=1., detalization=0.1):
@@ -76,15 +76,15 @@ class LocalizedSpectralDensity(BasicFeature):
             return energy
 
     class FourierBasedCalculator:
-        def __init__(self):
-            pass
+        def __init__(self, pulse_norm):
+            self._pulse_norm = pulse_norm
 
         def calc_energy(self, y, R_peaks, sampling_fq, fq_begin, fq_end, slice_begin=0., slice_end=1.):
             energy = 0.
             for i in range(len(R_peaks)-1):
                 beat_size = R_peaks[i+1] - R_peaks[i]
-                if (float(beat_size) / sampling_fq) < (60. / 250.): # pulse > 250 bps
-                    logging.error('Too small beat encountered: %f seconds', (float(beat_size) / sampling_fq))
+                if (float(beat_size) / sampling_fq) < (60. / self._pulse_norm['interval'][1]): # misdetected peak (usually P or T wave)
+                    logging.error('Too small beat encountered: %f seconds < allowed %f', (float(beat_size) / sampling_fq), (60. / self._pulse_norm['interval'][1]))
                     continue
                 begin = int(R_peaks[i] + slice_begin * beat_size)
                 end = int(R_peaks[i] + slice_end * beat_size)
@@ -93,11 +93,14 @@ class LocalizedSpectralDensity(BasicFeature):
                 fft = np.abs(np.fft.rfft(y[begin:(end+1)] * window)) / (sampling_fq / 2.)
                 f = sampling_fq / 2. * np.linspace(0.0, 1.0, clip_size/2 + 1)
                 croppedFft = np.asarray([_fft for _f,_fft in zip(f, fft) if fq_begin < _f < fq_end])
-                energy += np.sum(croppedFft ** 2) * (float(fq_end-fq_begin) / len(croppedFft))
+                if len(croppedFft) > 0:
+                    energy += np.sum(croppedFft ** 2) * (float(fq_end-fq_begin) / len(croppedFft))
+                else:
+                    logging.error('Cropped fft length == 0! fq: [%f, %f], slice: [%f, %f], beat_size: %d', fq_begin, fq_end, slice_begin, slice_end, beat_size)
             return energy
 
     def run(self, ecg, beat_begin=0., beat_end=1., fq_begin=200, fq_end=400, calc_type='wavelet', normalized=True):
-        assert 1. >= beat_end > beat_begin >= 0.
+        # assert 1. >= beat_end > beat_begin >= 0.
         assert fq_end > fq_begin > 0
 
         sampling_fq = ecg.getDataFrequency()
@@ -107,15 +110,15 @@ class LocalizedSpectralDensity(BasicFeature):
             y_high = clc.normalize(y_high, type='energy=1', sampling_fq=sampling_fq)
         assert fq_end < (sampling_fq / 2.) # cannot get higher resolution
         if ecg.layout is None:
-            layout = generate_modulus_maximum_layout(y_low, sampling_fq, ecg.animal)
+            layout = generate_modulus_maximum_layout(y_low, sampling_fq, ecg.PULSE_NORM)
             ecg.layout = layout
         R_peaks = [point[0] for point in ecg.layout if point[1] == 'R']
         if len(R_peaks) < 2:
             raise ValueError('Not enough beats detected: %d', len(R_peaks))
         if calc_type == 'wavelet':
-            calculator = self.WaveletBasedCalculator()
+            calculator = self.WaveletBasedCalculator(ecg.PULSE_NORM)
         elif calc_type == 'fft':
-            calculator = self.FourierBasedCalculator()
+            calculator = self.FourierBasedCalculator(ecg.PULSE_NORM)
         else:
             raise ValueError('Unknown calculator: %s' % calc_type)
         energy = calculator.calc_energy(y_high, R_peaks, sampling_fq, fq_begin, fq_end, beat_begin, beat_end)

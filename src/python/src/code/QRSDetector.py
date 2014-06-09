@@ -5,12 +5,9 @@ import matplotlib.pyplot as plt
 import src.code.WaveletProcessor as WP
 import src.code.calculator as clc
 
-PULSE_NORM = {'mouse': {'interval': [300., 800], 'peak width': 0.004},
-              'human': {'interval': [40., 150], 'peak width': 0.008}}
-
 class WaveletBasedQRSDetector(object):
-    def __init__(self, y, sampling_fq, animal='human'):
-        self._pulse_norm = PULSE_NORM[animal]
+    def __init__(self, y, sampling_fq, pulse_norm):
+        self._pulse_norm = pulse_norm
         self._y = y
         self._sampling_fq = sampling_fq
         self._record_time = len(y) / sampling_fq

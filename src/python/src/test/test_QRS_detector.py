@@ -13,7 +13,7 @@ class QRSDetectorTest(ECGDependentTest):
         ecg = self.ecg_mouse()
 
         y = ecg.getLowFreq()
-        detector = WaveletBasedQRSDetector(y, ecg.getDataFrequency(), animal=ecg.animal)
+        detector = WaveletBasedQRSDetector(y, ecg.getDataFrequency(), ecg.PULSE_NORM)
         wt = WP.get_WT(y, detector._get_R_peak_scale())
         peaks = detector._get_R_peaks(beta)
         logging.info('Error value: %f', detector._get_value_to_optimize(peaks))
@@ -24,7 +24,7 @@ class QRSDetectorTest(ECGDependentTest):
         ecg = self.ecg_mouse()
         x = ecg.getTiming()
         y = ecg.getLowFreq()
-        detector = WaveletBasedQRSDetector(y, ecg.getDataFrequency(), animal=ecg.animal)
+        detector = WaveletBasedQRSDetector(y, ecg.getDataFrequency(), ecg.PULSE_NORM)
         # detector.visualize_detector()
         wt = WP.get_WT(y, detector._get_R_peak_scale())
         peaks = detector.search_for_R_peaks()
@@ -33,7 +33,7 @@ class QRSDetectorTest(ECGDependentTest):
     def test_optimization_curve(self):
         ecg = self.ecg_mouse()
         y = ecg.getLowFreq()
-        detector = WaveletBasedQRSDetector(y, ecg.getDataFrequency(), animal=ecg.animal)
+        detector = WaveletBasedQRSDetector(y, ecg.getDataFrequency(), ecg.PULSE_NORM)
         search_interval = [0.1, detector._get_high_search_limit(detector._mm, detector._wt) / detector._avg_mm]
         search_grid = np.linspace(search_interval[0], search_interval[1], 240)
         curve = np.zeros(len(search_grid))
@@ -46,8 +46,9 @@ class QRSDetectorTest(ECGDependentTest):
 
 
     def test_T_wave(self):
-        y = self.ecg().getLowFreq()
-        detector = WaveletBasedQRSDetector(y, self.ecg().getDataFrequency())
+        ecg = self.ecg()
+        y = ecg.getLowFreq()
+        detector = WaveletBasedQRSDetector(y, ecg.getDataFrequency(), ecg.PULSE_NORM)
         peaks = detector.search_for_R_peaks()
         detector._get_T_wave(peaks)
 
