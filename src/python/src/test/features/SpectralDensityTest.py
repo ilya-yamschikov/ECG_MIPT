@@ -44,4 +44,4 @@ class SpectralDensityTest(ECGDependentTest):
 
     def test_real(self):
         ecg = self.ecg()
-        self.feature.run(ecg, begin=200., end=500., normalized=True)
+        self.feature.run(ecg, begin=200., end=500., normalized=True, use_original_signal=True)

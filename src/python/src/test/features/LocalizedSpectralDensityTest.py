@@ -64,6 +64,45 @@ class Test(ECGDependentTest):
             energy = feature._calc_energy(y, R_peaks, sampling_fq, 3., 20., len_range[0], len_range[1])
             logging.info('Energy in [%f, %f] slice: %f', len_range[0], len_range[1], energy)
 
+    def test_multibeat_time_n_freq(self):
+        sampling_fq = 1000
+        sample_length = 1.
+        sample_x = np.linspace(0., 1., int(sampling_fq * sample_length)) * sample_length
+        sample_y = np.cos(sample_x * 2 * np.pi)
+        parts = [0.0, 0.4, 0.8, 1.0]
+        fqs = [30., 40, 10.]
+        amps = [2.0, 4., 2.0]
+
+        x = np.zeros(1)
+        y = np.array(sample_y[0])
+        R_peaks = [0]
+        samples_count = 5
+        for s in range(samples_count):
+            y_part = np.copy(sample_y)
+            for i in range(len(parts)-1):
+                part_begin = int(len(sample_x) * parts[i])
+                part_end = int(len(sample_x) * parts[i+1]) + 1
+                y_part[part_begin:part_end] += amps[i] * np.sin(fqs[i] * sample_x[part_begin:part_end] * 2 * np.pi)
+            x = np.append(x, np.copy(sample_x[1:]) + x[-1])
+            y = np.append(y, y_part[1:])
+            R_peaks.append(R_peaks[-1] + len(y_part)-1)
+
+        # plt.plot(x, y, 'r-')
+        # plt.plot(x[R_peaks], y[R_peaks], 'b^')
+        # plt.show()
+        # scales = WP.fq_range_to_scales(20., 50., sampling_fq)
+        # wt = WP.get_WT(y, scales)
+        # draw_cwt_as_img(y, wt, scales)
+
+        y = clc.normalize(y, type='energy=1', sampling_fq=sampling_fq)
+
+        # calculator = LocalizedSpectralDensity.WaveletBasedCalculator()
+        calculator = LocalizedSpectralDensity.FourierBasedCalculator()
+        len_ranges = [[0, 0.4], [0.4, 0.8], [0.8, 1.0]]
+        for len_range in len_ranges:
+            energy = calculator.calc_energy(y, R_peaks, sampling_fq, 20., 50., len_range[0], len_range[1])
+            logging.info('Energy in [%f, %f] slice: %f', len_range[0], len_range[1], energy)
+
     def test_ecg_ptb(self):
         logging.basicConfig(level=logging.INFO)
 

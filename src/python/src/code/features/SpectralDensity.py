@@ -12,12 +12,19 @@ class SpectralDensity(BasicFeature):
     def __init__(self):
         pass
 
-    def run(self, ecg, begin=200.0, end=500.0, normalized=True):
-        y = ecg.getHighFreq()
+    def run(self, ecg, begin=200.0, end=500.0, normalized=True, use_original_signal=False):
+        if use_original_signal:
+            if hasattr(ecg, 'getSignal'):
+                y = ecg.getSignal()
+            else:
+                logging.error('Requested original signal while ECG doesnt have any')
+                y = ecg.getHighFreq()
+        else:
+            y = ecg.getHighFreq()
         fq = ecg.getDataFrequency()
         assert end <= fq / 2.
         if normalized:
-            y = clc.normalize(y, type='energy=1', sampling_fq=fq) # normed to RMS -> energy_speed = 1 / sec => energy = T
+            y = clc.normalize(y, type='energy=1', sampling_fq=fq)
         if ecg._f is None or ecg._fft is None:
             tt = time.time()
             ecg._f = fq / 2. * np.linspace(0.0, 1.0, len(y)/2 + 1)

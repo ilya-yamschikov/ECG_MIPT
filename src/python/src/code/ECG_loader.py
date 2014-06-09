@@ -96,10 +96,14 @@ class PTB_ECG(BasicECG):
     def getDataFrequency(self):
         return self.frequency
 
-    def getLowFreq(self):
-        res = self.lowFreq
+    def _invert(self, res):
         return res if not self._inverted else -res
 
+    def getLowFreq(self):
+        return self._invert(self.lowFreq)
+
     def getHighFreq(self):
-        res = self.highFreq
-        return res if not self._inverted else -res
+        return self._invert(self.highFreq)
+
+    def getSignal(self):
+        return self._invert(self.y)
