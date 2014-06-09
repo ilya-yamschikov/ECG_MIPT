@@ -5,6 +5,8 @@ import numpy as np
 import src.code.calculator as clc
 import scipy.signal as sig
 
+from src.code.QRSDetector import WaveletBasedQRSDetector
+
 
 class WPTest(ECGDependentTest):
     def test_ECG_mod_max(self):
@@ -25,11 +27,11 @@ class WPTest(ECGDependentTest):
         WP.draw_MM_lines(mm,y,wt)
 
     def test_draw_strengths(self):
-        scale = 12
-        ecg = self.ecg()
+        ecg = self.ecg_mouse()
         y = ecg.getLowFreq()
+        scale = 0.0015 * ecg.getDataFrequency()
         wt = WP.get_WT(y, scale)
         wt = clc.normalize(wt, 'median_abs')
         mm = WP.get_mm_array(wt)
         mm = WP.filter_mm_array(mm, wt)
-        WP.draw_MM_strengths(mm, y, wt, wavelet=100*sig.ricker(scale*10, scale))
+        WP.draw_MM_strengths(mm, y, wt, wavelet=100*sig.ricker(scale*10, scale), diffs=True)

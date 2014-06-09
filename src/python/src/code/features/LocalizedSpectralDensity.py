@@ -107,7 +107,7 @@ class LocalizedSpectralDensity(BasicFeature):
             y_high = clc.normalize(y_high, type='energy=1', sampling_fq=sampling_fq)
         assert fq_end < (sampling_fq / 2.) # cannot get higher resolution
         if ecg.layout is None:
-            layout = generate_modulus_maximum_layout(y_low, sampling_fq)
+            layout = generate_modulus_maximum_layout(y_low, sampling_fq, ecg.animal)
             ecg.layout = layout
         R_peaks = [point[0] for point in ecg.layout if point[1] == 'R']
         if len(R_peaks) < 2:

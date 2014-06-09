@@ -8,9 +8,11 @@ import src.code.calculator as clc
 class ECGVisualizator(ECGDependentTest):
 
     def test_plot_ecg(self):
-        y_low = self.ecg().getLowFreq()
-        y_high = self.ecg().getHighFreq()
-        x = self.ecg().getTiming()
+        ecg = self.ecg_mouse()
+
+        y_low = ecg.getLowFreq()
+        y_high = ecg.getHighFreq()
+        x = ecg.getTiming()
         __, p = plt.subplots(2, sharex=True)
         p[0].plot(x,y_low,'r-')
         p[1].plot(x,y_high,'g-')

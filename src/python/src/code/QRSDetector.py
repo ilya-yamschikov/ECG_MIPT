@@ -5,9 +5,12 @@ import matplotlib.pyplot as plt
 import src.code.WaveletProcessor as WP
 import src.code.calculator as clc
 
+PULSE_NORM = {'mouse': {'interval': [300., 800], 'peak width': 0.004},
+              'human': {'interval': [40., 150], 'peak width': 0.008}}
 
 class WaveletBasedQRSDetector(object):
-    def __init__(self, y, sampling_fq):
+    def __init__(self, y, sampling_fq, animal='human'):
+        self._pulse_norm = PULSE_NORM[animal]
         self._y = y
         self._sampling_fq = sampling_fq
         self._record_time = len(y) / sampling_fq
@@ -20,7 +23,7 @@ class WaveletBasedQRSDetector(object):
         self._avg_mm = np.median(mm_abs_values)
 
     def _get_R_peak_scale(self):
-        return int(0.008 * self._sampling_fq)
+        return int((self._pulse_norm['peak width']) * self._sampling_fq)
 
     def _get_T_wave_scale(self):
         return int(0.064 * self._sampling_fq)
@@ -31,7 +34,7 @@ class WaveletBasedQRSDetector(object):
             diff = np.abs(wt[mm[i+1]] - wt[mm[i]])
             diffs.append(diff)
         diffs = sorted(diffs)
-        return diffs[-5]
+        return diffs[-1]
 
     def _clip_border_effects(self, y, wt):
         scale = self._get_R_peak_scale()
@@ -97,17 +100,19 @@ class WaveletBasedQRSDetector(object):
         return np.array(adjusted_peaks)
 
     def _get_value_to_optimize(self, mm):
-        if len(mm) < 1:
+        if len(mm) < 3:
             logging.error('Not enough mod maxes for value: %d', len(mm))
             return np.inf
         distances = []
         for i in range(1, len(mm)):
             distances.append((mm[i] - mm[i-1]) / float(self._sampling_fq)) # in seconds
         mean_dst_sec = np.mean(distances)
-        if mean_dst_sec > (60. / 40.): # < 50 bps
-            strange_pulse_penalty = (mean_dst_sec - (60./40.)) ** 2
-        elif mean_dst_sec < (60. / 150.): # > 180 bps
-            strange_pulse_penalty = (1 / mean_dst_sec) - (150. / 60)
+        high_border = 60. / (self._pulse_norm['interval'][0])
+        low_border = 60. / (self._pulse_norm['interval'][1])
+        if mean_dst_sec > high_border: # < 50 bps
+            strange_pulse_penalty = (mean_dst_sec - high_border) ** 2
+        elif mean_dst_sec < low_border: # > 180 bps
+            strange_pulse_penalty = (1 / mean_dst_sec) - low_border
         else:
             strange_pulse_penalty = 0.
         return np.std(distances) + strange_pulse_penalty

@@ -22,6 +22,7 @@ class MouseECG(BasicECG):
 
     def __init__(self, fileName):
         BasicECG.__init__(self)
+        self.animal = 'mouse'
         waveObj = wave.open(fileName, 'r')
         framesCount = waveObj.getnframes()
         self.frequency = waveObj.getframerate()
@@ -64,6 +65,7 @@ class PTB_ECG(BasicECG):
 
     def __init__(self, fileName):
         BasicECG.__init__(self)
+        self.animal = 'human'
         descrFile = open(fileName + '.descr', 'r')
         self.Class = descrFile.readline()
         descrFile.close()

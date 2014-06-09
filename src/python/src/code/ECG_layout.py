@@ -44,8 +44,8 @@ def generateSimpleLayout(y, sampling_frequency):
     return layout
 
 
-def generate_modulus_maximum_layout(y, sampling_frequency):
-    detector = WaveletBasedQRSDetector(y, sampling_frequency)
+def generate_modulus_maximum_layout(y, sampling_frequency, animal='human'):
+    detector = WaveletBasedQRSDetector(y, sampling_frequency, animal=animal)
     R_peaks = detector.search_for_R_peaks()
     layout = [(peak, 'R') for peak in R_peaks]
     return layout
