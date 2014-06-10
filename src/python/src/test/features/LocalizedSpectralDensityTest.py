@@ -87,6 +87,9 @@ class Test(ECGDependentTest):
             y = np.append(y, y_part[1:])
             R_peaks.append(R_peaks[-1] + len(y_part)-1)
 
+        # missed beats
+        # R_peaks = R_peaks[2:]
+
         # plt.plot(x, y, 'r-')
         # plt.plot(x[R_peaks], y[R_peaks], 'b^')
         # plt.show()
@@ -97,8 +100,9 @@ class Test(ECGDependentTest):
         y = clc.normalize(y, type='energy=1', sampling_fq=sampling_fq)
 
         # calculator = LocalizedSpectralDensity.WaveletBasedCalculator()
-        calculator = LocalizedSpectralDensity.FourierBasedCalculator()
-        len_ranges = [[0, 0.4], [0.4, 0.8], [0.8, 1.0]]
+        calculator = LocalizedSpectralDensity.FourierBasedCalculator({'interval': [30., 200.], 'peak width': 0.008})
+        # len_ranges = [[0, 0.4], [0.4, 0.8], [0.8, 1.0]]
+        len_ranges = [[0, 1.0]]
         for len_range in len_ranges:
             energy = calculator.calc_energy(y, R_peaks, sampling_fq, 20., 50., len_range[0], len_range[1])
             logging.info('Energy in [%f, %f] slice: %f', len_range[0], len_range[1], energy)
@@ -108,8 +112,9 @@ class Test(ECGDependentTest):
 
         ecg = self.ecg_mouse()
         feature = LocalizedSpectralDensity()
-        len_ranges = [[0, 0.3333], [0.3333, 0.6666], [0.6666, 1.0]]
-        fq_begin, fq_end = 200, 400
+        # len_ranges = [[0, 0.3333], [0.3333, 0.6666], [0.6666, 1.0]]
+        len_ranges = [[0, 1.0]]
+        fq_begin, fq_end = 200, 500
         for len_range in len_ranges:
             energy = feature.run(ecg, len_range[0], len_range[1], fq_begin ,fq_end, calc_type='fft')
             logging.info('Energy in [%f, %f] slice on fq [%f, %f]: %f', len_range[0], len_range[1], fq_begin ,fq_end, energy)

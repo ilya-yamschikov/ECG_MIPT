@@ -34,11 +34,11 @@ def ricker_scale_to_fq(scale, sampling_fq):
 def fq_range_to_scales(fq_min, fq_max, sampling_fq, detalization=0.2):
     scales_low = np.round(fq_to_ricker_scale(fq_max, sampling_fq), decimals=1)
     scales_high = np.round(fq_to_ricker_scale(fq_min, sampling_fq), decimals=1)
-    # points = int(np.log(scales_high/scales_low) / np.log(1 + detalization))
-    # scales = np.arange(points + 1)
-    # scales = scales_low * ((1 + detalization) ** scales)
-    # scales = np.append(scales, scales_high)
-    scales = np.arange(scales_low, scales_high, detalization)
+    points = int(np.log(scales_high/scales_low) / np.log(1 + detalization))
+    scales = np.arange(points + 1)
+    scales = scales_low * ((1 + detalization) ** scales)
+    scales = np.append(scales, scales_high)
+    # scales = np.arange(scales_low, scales_high, detalization)
     scales = np.round(scales, decimals=1)
     scales = np.unique(scales)
     return scales

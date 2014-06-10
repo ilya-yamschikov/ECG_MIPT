@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 
 from src.code.calculator import getMainFrequency, get_fft
 from src.test import ECGDependentTest
+import src.code.ECG_loader as loader
+import src.code.calculator as clc
+import src.code.WaveletProcessor as WP
 
 
 def draw_cwt_as_img(y, cwt, scales):
@@ -130,3 +133,49 @@ class VariousTests(ECGDependentTest):
         p[0].plot(x, y, 'r-')
         p[1].plot(f, fft, 'g-')
         plt.show()
+
+    def test_show_fft_sequence(self):
+        ecg1 = loader.MouseECG(r'..\..\..\..\data\new_data\3_1.wav')
+        ecg2 = loader.MouseECG(r'..\..\..\..\data\new_data\3_2.wav')
+        ecg3 = loader.MouseECG(r'..\..\..\..\data\new_data\3_3.wav')
+        ecg4 = loader.MouseECG(r'..\..\..\..\data\new_data\3_4.wav')
+
+        def get_fft(y, fq):
+            y = clc.normalize(y, type='energy=1', sampling_fq=fq)
+            f = fq / 2. * np.linspace(0.0, 1.0, len(y)/2 + 1)
+            fft = np.abs(np.fft.rfft(y)) / (fq / 2.)
+            return fft, f
+
+        to_show = 'fft'
+        # to_show = 'wt'
+        # to_show = 'low'
+        if to_show == 'fft':
+            fft1, f1 = get_fft(ecg1.getHighFreq(), ecg1.getDataFrequency())
+            logging.info('ff1 energy: %f', np.sum(fft1 ** 2) * (f1[-1] - f1[0]) / len(f1))
+            fft2, f2 = get_fft(ecg2.getHighFreq(), ecg2.getDataFrequency())
+            fft3, f3 = get_fft(ecg3.getHighFreq(), ecg3.getDataFrequency())
+            fft4, f4 = get_fft(ecg4.getHighFreq(), ecg4.getDataFrequency())
+
+            __, p = plt.subplots(4, sharex=True)
+            p[0].plot(f1, fft1, 'g-')
+            p[1].plot(f2, fft2, 'g-')
+            p[2].plot(f3, fft3, 'g-')
+            p[3].plot(f4, fft4, 'g-')
+            plt.show()
+        elif to_show == 'wt':
+            scale = WP.fq_range_to_scales(10., 500., ecg1.getDataFrequency(), detalization=0.5)
+            wt1 = WP.get_WT(ecg1.getHighFreq(), scale)
+            draw_cwt_as_img(ecg1.getHighFreq(), wt1, scale)
+            wt2 = WP.get_WT(ecg2.getHighFreq(), scale)
+            draw_cwt_as_img(ecg2.getHighFreq(), wt2, scale)
+            wt3 = WP.get_WT(ecg3.getHighFreq(), scale)
+            draw_cwt_as_img(ecg3.getHighFreq(), wt3, scale)
+            wt4 = WP.get_WT(ecg4.getHighFreq(), scale)
+            draw_cwt_as_img(ecg4.getHighFreq(), wt4, scale)
+        elif to_show == 'low':
+            __, p = plt.subplots(4)
+            p[0].plot(ecg1.getLowFreq(), 'g-')
+            p[1].plot(ecg2.getLowFreq(), 'g-')
+            p[2].plot(ecg3.getLowFreq(), 'g-')
+            p[3].plot(ecg4.getLowFreq(), 'g-')
+            plt.show()

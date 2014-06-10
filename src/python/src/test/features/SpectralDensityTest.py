@@ -43,5 +43,5 @@ class SpectralDensityTest(ECGDependentTest):
         logging.info('high+med/low amplitude: %f, by fft: %f', ((high_amp+medium)/low_amp) ** 2, (high_med)/low)
 
     def test_real(self):
-        ecg = self.ecg()
+        ecg = self.ecg_mouse()
         self.feature.run(ecg, begin=200., end=500., normalized=True, use_original_signal=True)

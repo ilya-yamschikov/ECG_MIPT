@@ -2,6 +2,7 @@ import wave
 import struct
 import logging
 import os
+import re
 
 import numpy as np
 
@@ -21,7 +22,10 @@ class BasicECG:
         return res if not self._inverted else -res
 
 class MouseECG(BasicECG):
-    NORMAL_FILES = ['16_5', '18_1']
+    # NORMAL_FILES = ['16_1', '16_2', '16_3', '16_4', '16_5', '16_6', '16_7', '16_8',
+    #                 '17_1',
+    #                 '18_1', '18_2', '18_3', '18_4', '18_5', '18_6', '18_7', '18_8', '18_9']
+    NORMAL_FILES = ['^16_\d+$', '^17_\d+$', '^18_\d+$', '^19_\d+$', '^20_\d+$', '^21_\d+$', '^22_\d+$', '^23_\d+$']
     CLASSES_MAPPING = {'DO1': ['1_1', '2_1', '3_1', '5_1', '6_1', '7_1', '8_1', '9_1', '10_1', '11_1', '12_1', '13_1', '16_1', '17_1', '18_1', '19_1', '20_1', '21_1', '22_1', '23_1'],
                    'T1': ['1_2', '2_2', '3_2', '5_2', '6_2', '7_2', '8_2', '9_2', '10_2', '11_2', '12_2', '13_2', '16_2', '17_2', '18_2', '19_2', '20_2', '21_2', '22_2', '23_2'],
                    'I1': ['1_3', '3_3', '5_3', '9_3', '10_3', '13_3', '16_3', '17_3', '18_3', '19_3', '20_3', '21_3', '22_3', '23_3'],
@@ -59,7 +63,12 @@ class MouseECG(BasicECG):
         raw_data = waveObj.readframes(framesCount)
         mixed_data = list(struct.unpack('=%dh' % (framesCount * channelsCount), raw_data))
 
-        self._inverted = get_filename_without_extension(fileName) not in self.NORMAL_FILES
+        self._inverted = True
+        for normal_file_pattern in self.NORMAL_FILES:
+            if re.match(normal_file_pattern, get_filename_without_extension(fileName)):
+                self._inverted = False
+                break
+        # self._inverted = get_filename_without_extension(fileName) not in self.NORMAL_FILES
 
         self.data = []
         for i in xrange(channelsCount):

@@ -23,17 +23,19 @@ class LocalizedSpectralDensity(BasicFeature):
 
         def _integrate_wt(self, R_peaks, wt, sampling_fq, scale_range_size, slice_begin=0., slice_end=1.):
             energy = 0.
+            covered_fraction = 0.
             for i in range(len(R_peaks)-1):
                 beat_size = R_peaks[i+1] - R_peaks[i]
+                if (float(beat_size) / sampling_fq) < (60. / self._pulse_norm['interval'][1]): # pulse > 250 bps
+                    logging.error('Too small beat encountered: %f seconds < %f', (float(beat_size) / sampling_fq), (60. / self._pulse_norm['interval'][1]))
+                    continue
+                covered_fraction += float(beat_size) / len(wt)
                 begin = int(R_peaks[i] + slice_begin * beat_size)
                 end = int(R_peaks[i] + slice_end * beat_size)
                 wt_clipped = wt[:, begin:(end+1)]
                 clip_time = float(end - begin) / sampling_fq
-                if (float(beat_size) / sampling_fq) > (60. / self._pulse_norm['interval'][1]): # pulse > 250 bps
-                    energy += np.sum(wt_clipped ** 2) * (float(clip_time) / wt_clipped.shape[1])
-                else:
-                    logging.error('Too small beat encountered: %f seconds < %f', (float(beat_size) / sampling_fq), (60. / self._pulse_norm['interval'][1]))
-            return energy * (float(scale_range_size) / wt.shape[0])
+                energy += np.sum(wt_clipped ** 2) * (float(clip_time) / wt_clipped.shape[1])
+            return energy * (float(scale_range_size) / wt.shape[0]) / covered_fraction
 
         def calc_energy(self, y, R_peaks, sampling_fq, fq_begin, fq_end, slice_begin=0., slice_end=1., detalization=0.1):
             # as WT calc time ~scale^2 => adaptive scales should be applied to speed up calculations
@@ -81,11 +83,13 @@ class LocalizedSpectralDensity(BasicFeature):
 
         def calc_energy(self, y, R_peaks, sampling_fq, fq_begin, fq_end, slice_begin=0., slice_end=1.):
             energy = 0.
+            covered_fraction = 0.
             for i in range(len(R_peaks)-1):
                 beat_size = R_peaks[i+1] - R_peaks[i]
                 if (float(beat_size) / sampling_fq) < (60. / self._pulse_norm['interval'][1]): # misdetected peak (usually P or T wave)
                     logging.error('Too small beat encountered: %f seconds < allowed %f', (float(beat_size) / sampling_fq), (60. / self._pulse_norm['interval'][1]))
                     continue
+                covered_fraction += float(beat_size) / len(y)
                 begin = int(R_peaks[i] + slice_begin * beat_size)
                 end = int(R_peaks[i] + slice_end * beat_size)
                 clip_size = end+1 - begin
@@ -97,7 +101,7 @@ class LocalizedSpectralDensity(BasicFeature):
                     energy += np.sum(croppedFft ** 2) * (float(fq_end-fq_begin) / len(croppedFft))
                 else:
                     logging.error('Cropped fft length == 0! fq: [%f, %f], slice: [%f, %f], beat_size: %d', fq_begin, fq_end, slice_begin, slice_end, beat_size)
-            return energy
+            return energy / covered_fraction
 
     def run(self, ecg, beat_begin=0., beat_end=1., fq_begin=200, fq_end=400, calc_type='wavelet', normalized=True):
         # assert 1. >= beat_end > beat_begin >= 0.
