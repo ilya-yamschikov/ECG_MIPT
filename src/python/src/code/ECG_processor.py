@@ -2,6 +2,9 @@ import datetime
 import logging
 import time
 import numpy as np
+import os
+
+from src.code import ExperimentsGenerator as eg
 
 FEATURES = {
     'RMS': 'features.RMS.RMS',
@@ -9,7 +12,7 @@ FEATURES = {
     'LocalizedSpectralDensity': 'features.LocalizedSpectralDensity.LocalizedSpectralDensity'
 }
 
-FEATURES_RUN = [
+# FEATURES_RUN = [
     # {'feature': 'RMS', 'name': 'RMS', 'options': {'normalized': True}},
     # {'feature': 'SpectralDensity', 'name': 'SpectralDensity1', 'options': {'normalized': True, 'begin': 25., 'end': 50., 'use_original_signal': True}},
     # {'feature': 'SpectralDensity', 'name': 'SpectralDensity2', 'options': {'normalized': True, 'begin': 50., 'end': 100., 'use_original_signal': True}},
@@ -28,16 +31,16 @@ FEATURES_RUN = [
     # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity5_fq', 'options': {'normalized': True, 'beat_begin': -0.1, 'beat_end': 0.1,'fq_begin': 250., 'fq_end': 300., 'calc_type': 'fft'}},
     # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity6_fq', 'options': {'normalized': True, 'beat_begin': -0.1, 'beat_end': 0.1,'fq_begin': 300., 'fq_end': 400., 'calc_type': 'fft'}},
     # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity7_fq', 'options': {'normalized': True, 'beat_begin': -0.1, 'beat_end': 0.1,'fq_begin': 400., 'fq_end': 500., 'calc_type': 'fft'}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity80_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 25., 'fq_end': 50., 'calc_type': 'fft'}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity8_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 50., 'fq_end': 100., 'calc_type': 'fft'}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity9_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 100., 'fq_end': 150., 'calc_type': 'fft'}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity10_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 150., 'fq_end': 200., 'calc_type': 'fft'}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity11_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 200., 'fq_end': 250., 'calc_type': 'fft'}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity12_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 250., 'fq_end': 300., 'calc_type': 'fft'}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity13_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 300., 'fq_end': 400., 'calc_type': 'fft'}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity14_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 400., 'fq_end': 500., 'calc_type': 'fft'}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity15_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 500., 'fq_end': 750., 'calc_type': 'fft'}},
-    {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity16_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 750., 'fq_end': 1000., 'calc_type': 'fft'}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity80_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 25., 'fq_end': 50., 'calc_type': 'fft'}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity8_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 50., 'fq_end': 100., 'calc_type': 'fft'}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity9_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 100., 'fq_end': 150., 'calc_type': 'fft'}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity10_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 150., 'fq_end': 200., 'calc_type': 'fft'}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity11_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 200., 'fq_end': 250., 'calc_type': 'fft'}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity12_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 250., 'fq_end': 300., 'calc_type': 'fft'}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity13_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 300., 'fq_end': 400., 'calc_type': 'fft'}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity14_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 400., 'fq_end': 500., 'calc_type': 'fft'}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity15_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 500., 'fq_end': 750., 'calc_type': 'fft'}},
+    # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity16_fq', 'options': {'normalized': True, 'beat_begin': -0.15, 'beat_end': 0.15,'fq_begin': 750., 'fq_end': 1000., 'calc_type': 'fft'}},
     # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity1', 'options': {'normalized': True, 'beat_begin': 0.0, 'beat_end': 0.1,'fq_begin': 200., 'fq_end': 250., 'calc_type': 'fft'}},
     # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity2', 'options': {'normalized': True, 'beat_begin': 0.1, 'beat_end': 0.2,'fq_begin': 200., 'fq_end': 250., 'calc_type': 'fft'}},
     # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity3', 'options': {'normalized': True, 'beat_begin': 0.2, 'beat_end': 0.3,'fq_begin': 200., 'fq_end': 250., 'calc_type': 'fft'}},
@@ -48,7 +51,7 @@ FEATURES_RUN = [
     # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity8', 'options': {'normalized': True, 'beat_begin': 0.7, 'beat_end': 0.8,'fq_begin': 200., 'fq_end': 250., 'calc_type': 'fft'}},
     # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity9', 'options': {'normalized': True, 'beat_begin': 0.8, 'beat_end': 0.9,'fq_begin': 200., 'fq_end': 250., 'calc_type': 'fft'}},
     # {'feature': 'LocalizedSpectralDensity', 'name': 'LocalizedSpectralDensity10', 'options': {'normalized': True, 'beat_begin': 0.9, 'beat_end': 1.0,'fq_begin': 200., 'fq_end': 250., 'calc_type': 'fft'}}
-]
+# ]
 
 def importClass(className):
     nameSplit = className.split('.')
@@ -86,7 +89,7 @@ def runFeatures(ecg, runList):
     logging.info('Experiment result = %s' % str(result))
     return result
 
-def runExperiment(data_description, outFilename):
+def runExperiment(data_description, FEATURES_RUN, outFilename):
     logging.info('Running experiment %s' % (str(FEATURES_RUN)))
 
     featuresDict = loadFeatures(FEATURES)

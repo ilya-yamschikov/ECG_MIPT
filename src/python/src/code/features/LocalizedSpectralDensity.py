@@ -90,8 +90,8 @@ class LocalizedSpectralDensity(BasicFeature):
                     logging.error('Too small beat encountered: %f seconds < allowed %f', (float(beat_size) / sampling_fq), (60. / self._pulse_norm['interval'][1]))
                     continue
                 covered_fraction += float(beat_size) / len(y)
-                begin = int(R_peaks[i] + slice_begin * beat_size)
-                end = int(R_peaks[i] + slice_end * beat_size)
+                begin = max(0, int(R_peaks[i] + slice_begin * beat_size))
+                end = min(int(R_peaks[i] + slice_end * beat_size), len(y)-1)
                 clip_size = end+1 - begin
                 window = WINDOW_FUNCTION(clip_size)
                 fft = np.abs(np.fft.rfft(y[begin:(end+1)] * window)) / (sampling_fq / 2.)

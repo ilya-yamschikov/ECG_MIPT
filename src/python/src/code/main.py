@@ -4,6 +4,7 @@ import os
 import re
 
 from src.code.ECG_processor import runExperiment
+from src.code import ExperimentsGenerator as EG
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -42,6 +43,8 @@ logging.info('===============')
 logging.info('Program started')
 logging.info('===============')
 
+experiment, experiment_name = EG.run_LSD_default_fq_given_interval(-0.2, 0.1)
+
 t = time.clock()
-runExperiment(data_mice, r'..\..\..\..\out\py_out.arff')
+runExperiment(data_mice, experiment, os.path.join(r'..\..\..\..\out', experiment_name))
 logging.info('Program ended in %.3fs' % (time.clock() - t))

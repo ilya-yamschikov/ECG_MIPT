@@ -154,7 +154,7 @@ class WaveletBasedQRSDetector(object):
         interval = [1., self._get_high_search_limit(self._mm, self._wt) / self._avg_mm]
         peaks = self._find_minimum(self._get_R_peaks, self._get_value_to_optimize, interval, self._is_final_solution)
         peaks = self._adjust_peaks(peaks)
-        peaks = peaks + self._clip_size # shift peaks as they were clipped
+        peaks += self._clip_size # shift peaks as they were clipped
         return peaks
 
     def _get_T_wave(self, R_peaks):

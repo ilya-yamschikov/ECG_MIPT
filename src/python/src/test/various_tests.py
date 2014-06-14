@@ -10,6 +10,7 @@ from src.test import ECGDependentTest
 import src.code.ECG_loader as loader
 import src.code.calculator as clc
 import src.code.WaveletProcessor as WP
+from src.code import ExperimentsGenerator as EG
 
 
 def draw_cwt_as_img(y, cwt, scales):
@@ -179,3 +180,7 @@ class VariousTests(ECGDependentTest):
             p[2].plot(ecg3.getLowFreq(), 'g-')
             p[3].plot(ecg4.getLowFreq(), 'g-')
             plt.show()
+
+    def test_runs_generator(self):
+        run = EG.run_LSD_default_fq_given_interval(0.1, 0.3)
+        logging.info('%s', str(run))

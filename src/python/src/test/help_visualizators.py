@@ -1,6 +1,14 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
+import logging
 
 import matplotlib.pyplot as plt
+from matplotlib import rc
+font = {'family': 'Verdana',
+        'weight': 'normal',
+        'size': 22}
+rc('font', **font)
 
 from src.test import ECGDependentTest
 import src.code.calculator as clc
@@ -14,13 +22,38 @@ class ECGVisualizator(ECGDependentTest):
         y_low = ecg.getLowFreq()
         y_high = ecg.getHighFreq()
         x = ecg.getTiming()
-        __, p = plt.subplots(2, sharex=True)
-        p[0].plot(x,y_low,'r-')
-        p[1].plot(x,y_high,'g-')
+
+        to_clip=False
+        if to_clip:
+            const=0.1
+            x=x[int(len(x)*const):int(len(x)*(1-const))]
+            y_low=y_low[int(len(y_low)*const):int(len(y_low)*(1-const))]
+            y_high=y_high[int(len(y_high)*const):int(len(y_high)*(1-const))]
+
+        logging.info('General statistic: RMS_low=%f, RMS_high=%f', clc.RMS(y_low), clc.RMS(y_high))
+
+        # __, p = plt.subplots(2, sharex=True)
+        # p[0].plot(x,y_low,'r-', linewidth=2.0)
+        # p[0].yaxis.set_ticks_position('none')
+        # plt.setp(p[0].get_yticklabels(), visible=False)
+        # p[1].plot(x,y_high,'g-', linewidth=1.2)
+        # p[1].yaxis.set_ticks_position('none')
+        # plt.setp(p[1].get_yticklabels(), visible=False)
+        # p[1].set_title(u'200-2000 Гц')
+        # plt.xlabel(u'Время, сек.')
+        # plt.xlim([0., 1.25])
+        # plt.ylim([-9000., 7000.])
+        # plt.show()
+
+        plt.plot(x,y_low,'r-', linewidth=2.0)
+        plt.xlim([0., 1.2])
+        plt.xlabel(u'Время, сек.', horizontalalignment='right')
+        plt.gca().axes.yaxis.set_visible(False)
+        # plt.ylim([-9000., 7000.])
         plt.show()
 
     def test_plot_fft(self):
-        ecg = self.ecg()
+        ecg = self.ecg_mouse()
 
         fq = ecg.getDataFrequency()
         x = ecg.getTiming()
@@ -57,7 +90,7 @@ class ECGVisualizator(ECGDependentTest):
 
         # Mouse T wave:  clip = [0.2, 0.65]
         # Mouse QRS wave:  clip = [-0.15, 0.15]
-        clip = [-0.15, 0.15]
+        clip = [-0.25, 0.25]
         clip_left = R_peaks[:-1] + np.array(clip[0] * (R_peaks[1:] - R_peaks[:-1]), dtype=np.int)
         clip_right = R_peaks[:-1] + np.array(clip[1] * (R_peaks[1:] - R_peaks[:-1]), dtype=np.int)
 
