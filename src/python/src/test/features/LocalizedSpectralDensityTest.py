@@ -118,3 +118,26 @@ class Test(ECGDependentTest):
         for len_range in len_ranges:
             energy = feature.run(ecg, len_range[0], len_range[1], fq_begin ,fq_end, calc_type='fft')
             logging.info('Energy in [%f, %f] slice on fq [%f, %f]: %f', len_range[0], len_range[1], fq_begin ,fq_end, energy)
+
+    def test_fft_integrator(self):
+        calculator = LocalizedSpectralDensity.FourierBasedCalculator({'interval': [30., 200.], 'peak width': 0.008})
+
+        f = np.array([0.0, 0.5, 1.0])
+        fft = np.array([1., 2., 1.])
+        integral = calculator.integrate_fft(f, fft, 0.25, 0.75)
+        self.assertAlmostEqual(integral, 0.875, places=3)
+
+        f = np.array([0.0, 0.5, 1.0, 1.5, 2.0])
+        fft = np.array([1., 3., 2., 3., 3.])
+        integral = calculator.integrate_fft(f, fft, 0.25, 1.75)
+        self.assertAlmostEqual(integral, 3.875, places=3)
+
+        f = np.array([3., 6., 9., 12.])
+        fft = np.array([10., 12., 7., 11.])
+        integral = calculator.integrate_fft(f, fft, 5., 11.)
+        self.assertAlmostEqual(integral, 56.833, places=3)
+
+        f = np.array([10., 11., 12., 13., 14., 15., 16.])
+        fft = np.array([10., 11., 12., 13., 14., 15., 16.])
+        integral = calculator.integrate_fft(f, fft, 12., 14.)
+        self.assertAlmostEqual(integral, 26.0, places=1)

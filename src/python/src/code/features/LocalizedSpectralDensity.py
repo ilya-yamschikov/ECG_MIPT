@@ -81,6 +81,55 @@ class LocalizedSpectralDensity(BasicFeature):
         def __init__(self, pulse_norm):
             self._pulse_norm = pulse_norm
 
+        def _integrate_line(self, x0, x1, y0, y1, x, left_side):
+            assert x0 <= x <= x1
+
+            a = (y1-y0)/float(x1-x0)
+            y = y0 + a*(x-x0)
+            if left_side:
+                integral = 1./2. * (y+y0) * (x-x0)
+            else:
+                integral = 1./2. * (y1+y) * (x1-x)
+            return integral
+
+        def integrate_fft(self, f, fft, f_low, f_high):
+            cropped_f = []
+            cropped_fft = []
+            integral = 0.0
+            for i in range(len(fft)):
+                if (f_low <= f[i] <= f_high) or \
+                        ((i < len(fft)) and (f[i] < f_low < f[i+1])) or \
+                        ((i > 0) and (f[i-1] < f_high < f[i])):
+                    cropped_f.append(f[i])
+                    cropped_fft.append(fft[i])
+
+            if len(cropped_fft) == 3:
+                logging.error('Too short fq interval [%f, %f]. Only %d points related to it.', f_low, f_high, len(cropped_fft))
+            if len(cropped_fft) < 3:
+                raise ValueError('Too short fq interval [%f, %f]. Only %d points related to it.' % (f_low, f_high, len(cropped_fft)))
+
+            if cropped_f[0] < f_low:
+                integral += self._integrate_line(cropped_f[0], cropped_f[1], cropped_fft[0], cropped_fft[1], f_low, False)
+                cropped_f = cropped_f[1:]
+                cropped_fft = cropped_fft[1:]
+
+            if cropped_f[-1] > f_high:
+                integral += self._integrate_line(cropped_f[-2], cropped_f[-1], cropped_fft[-2], cropped_fft[-1], f_high, True)
+                cropped_f = cropped_f[:-1]
+                cropped_fft = cropped_fft[:-1]
+
+            if len(cropped_fft) == 0:
+                raise ValueError('Unexpected error')
+            if len(cropped_fft) == 1:
+                return integral
+            if len(cropped_fft) == 2:
+                return integral + 1./2. * (cropped_fft[0] + cropped_fft[1]) * (cropped_f[1] - cropped_f[0])
+
+            _sum = 1./2. * (cropped_fft[0] + cropped_fft[-1]) + np.sum(cropped_fft[1:-1])
+            _sum = _sum * (cropped_f[-1] - cropped_f[0]) / float(len(cropped_f) - 1)
+            integral += _sum
+            return integral
+
         def calc_energy(self, y, R_peaks, sampling_fq, fq_begin, fq_end, slice_begin=0., slice_end=1.):
             energy = 0.
             covered_fraction = 0.
@@ -96,11 +145,7 @@ class LocalizedSpectralDensity(BasicFeature):
                 window = WINDOW_FUNCTION(clip_size)
                 fft = np.abs(np.fft.rfft(y[begin:(end+1)] * window)) / (sampling_fq / 2.)
                 f = sampling_fq / 2. * np.linspace(0.0, 1.0, clip_size/2 + 1)
-                croppedFft = np.asarray([_fft for _f,_fft in zip(f, fft) if fq_begin < _f < fq_end])
-                if len(croppedFft) > 0:
-                    energy += np.sum(croppedFft ** 2) * (float(fq_end-fq_begin) / len(croppedFft))
-                else:
-                    logging.error('Cropped fft length == 0! fq: [%f, %f], slice: [%f, %f], beat_size: %d', fq_begin, fq_end, slice_begin, slice_end, beat_size)
+                energy += self.integrate_fft(f, fft ** 2, fq_begin, fq_end)
             return energy / covered_fraction
 
     def run(self, ecg, beat_begin=0., beat_end=1., fq_begin=200, fq_end=400, calc_type='wavelet', normalized=True):

@@ -13,7 +13,8 @@ def get_filename_without_extension(filename):
     return os.path.basename(os.path.splitext(filename)[0])
 
 class BasicECG:
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.layout = None
         self._f = None
         self._fft = None
@@ -45,7 +46,7 @@ class MouseECG(BasicECG):
     PULSE_NORM = {'interval': [300., 800], 'peak width': 0.004}
 
     def __init__(self, fileName):
-        BasicECG.__init__(self)
+        BasicECG.__init__(self, fileName)
         self.animal = 'mouse'
         waveObj = wave.open(fileName, 'r')
         framesCount = waveObj.getnframes()
@@ -107,7 +108,7 @@ class PTB_ECG(BasicECG):
     PULSE_NORM = {'interval': [40., 150], 'peak width': 0.008}
 
     def __init__(self, fileName):
-        BasicECG.__init__(self)
+        BasicECG.__init__(self, fileName)
         self.animal = 'human'
         descrFile = open(fileName + '.descr', 'r')
         self.Class = descrFile.readline()

@@ -89,19 +89,31 @@ def runFeatures(ecg, runList):
     logging.info('Experiment result = %s' % str(result))
     return result
 
-def runExperiment(data_description, FEATURES_RUN, outFilename):
-    logging.info('Running experiment %s' % (str(FEATURES_RUN)))
+def load_files(description):
+    assert 'loader' in description
+    assert 'files' in description
+    t = time.clock()
 
+    loaderClass = importClass(description['loader'])
+    files_list = description['files']
+    objects = []
+    for file_name in files_list:
+        ecg = loaderClass(file_name)
+        objects.append(ecg)
+    time_to_load = (time.clock() - t)
+    logging.info('Data loaded in %.3fs, avg %.3fs per object', time_to_load, time_to_load / float(len(objects)))
+    return objects
+
+def runExperiment(objects_to_evaluate, features_to_run, run_options,  outFilename=None):
+    logging.info('Running experiment %s' % (str(features_to_run)))
+
+    data = []
+    target = []
     featuresDict = loadFeatures(FEATURES)
-    featuresRun = FEATURES_RUN
+    featuresRun = features_to_run
     checkRuns(featuresRun)
     updateRuns(featuresRun, featuresDict)
-    loaderClass = importClass(data_description['loader'])
-    files = data_description['files']
-    np.random.shuffle(files)
-    classesToRun = data_description['classes']
-    if classesToRun == 'all':
-        classesToRun = loaderClass.Classes
+    classesToRun = run_options['classes']
 
     outStr = []
     outStr.append('%% auto generated file from PYTHON on %s\n' % str(datetime.datetime.now()))
@@ -112,22 +124,25 @@ def runExperiment(data_description, FEATURES_RUN, outFilename):
     outStr.append('@DATA')
 
     counter = 0
-    for ecgFileName in files:
+    for ecg in objects_to_evaluate:
         counter+=1
         # if counter > 200:
         #     break
-        logging.info('Processing %d/%d file [%s]' % (counter, len(files), ecgFileName))
+        logging.info('Processing %d/%d object [%s]' % (counter, len(objects_to_evaluate), ecg.name))
         tt = time.time()
-        ecg = loaderClass(ecgFileName)
-        if ecg.getClass() not in classesToRun:
-            logging.info('Skipping file %s of class %s, because this class is not in scope', ecgFileName, ecg.getClass())
+        if classesToRun != 'all' and ecg.getClass() not in classesToRun:
+            logging.info('Skipping file %s of class %s, because this class is not in scope', ecg.name, ecg.getClass())
             continue
-        featuresValues = runFeatures(ecg, FEATURES_RUN)
+        featuresValues = runFeatures(ecg, features_to_run)
         logging.info('%d file processed in %.3f seconds', counter, (time.time() - tt))
+        data.append(featuresValues)
+        target.append(ecg.getClass())
         outStr.append(', '.join(['%.5f' % v for v in featuresValues]) + ', ' + ecg.getClass())
 
     outStr = '\n'.join(outStr)
-    logging.info('Writing to [%s] data: %s' % (outFilename, outStr.replace('\n', r'\n')))
-    fo = open(outFilename, 'w')
-    fo.write(outStr)
-    fo.close()
+    if outFilename is not None:
+        logging.info('Writing to [%s] data: %s' % (outFilename, outStr.replace('\n', r'\n')))
+        with open(outFilename, 'w') as fo:
+            fo.write(outStr)
+
+    return data, target
