@@ -113,8 +113,8 @@ class Test(ECGDependentTest):
         ecg = self.ecg_mouse()
         feature = LocalizedSpectralDensity()
         # len_ranges = [[0, 0.3333], [0.3333, 0.6666], [0.6666, 1.0]]
-        len_ranges = [[0, 1.0]]
-        fq_begin, fq_end = 200, 500
+        len_ranges = [[0.06, 0.56]]
+        fq_begin, fq_end = 25, 50
         for len_range in len_ranges:
             energy = feature.run(ecg, len_range[0], len_range[1], fq_begin ,fq_end, calc_type='fft')
             logging.info('Energy in [%f, %f] slice on fq [%f, %f]: %f', len_range[0], len_range[1], fq_begin ,fq_end, energy)
