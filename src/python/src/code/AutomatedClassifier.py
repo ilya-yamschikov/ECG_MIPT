@@ -17,9 +17,12 @@ logging.getLogger().addHandler(logging.StreamHandler())
 
 CACHE_DIRECTORY=r'..\..\..\..\out\automated_cache'
 
-C_RANGE = np.append(np.append(np.append(np.linspace(0.1, 1.0, 10), np.linspace(2.0, 10.0, 9)), np.linspace(20.0, 100.0, 9)), np.linspace(200.0, 1000.0, 9))
+C_RANGE = np.append(np.append(np.append(np.append(np.linspace(0.01, 0.09, 10), np.linspace(0.1, 1.0, 10)), np.linspace(2.0, 10.0, 9)), np.linspace(20.0, 100.0, 9)), np.linspace(200.0, 1000.0, 9))
 C_RANGE = np.append(C_RANGE, np.linspace(2000.0, 10000.0, 9))
 C_RANGE = np.append(C_RANGE, np.linspace(20000.0, 100000.0, 9))
+
+# do not load ECGs from files again
+OBJECTS_LOADED = [None]
 
 def get_experiment_data(features_run, experiment_name):
     cache_file_name = os.path.join(CACHE_DIRECTORY, experiment_name)
@@ -42,8 +45,10 @@ def get_experiment_data(features_run, experiment_name):
     else:
         t = time.clock()
         data = config.data_mice
-        objects_to_evaluate = processor.load_files(data)
-        features_values, answers = processor.runExperiment(objects_to_evaluate, features_run, data['options'], outFilename=cache_file_name)
+        if OBJECTS_LOADED[0] is None:
+            objects_to_evaluate = processor.load_files(data)
+            OBJECTS_LOADED[0] = objects_to_evaluate
+        features_values, answers = processor.runExperiment(OBJECTS_LOADED[0], features_run, data['options'], outFilename=cache_file_name)
         logging.info('No cached version found. Calculated new version in %.3fs' % (time.clock() - t))
 
     # convert classes to integers
@@ -52,17 +57,36 @@ def get_experiment_data(features_run, experiment_name):
     answers = [class_to_int_mapping[class_str] for class_str in answers]
     return features_values, answers
 
+def randomize_sampling(features_values, answers):
+    idxs = np.arange(len(answers))
+    np.random.shuffle(idxs)
+    features_values = [features_values[i] for i in idxs]
+    answers = [answers[i] for i in idxs]
+    return features_values, answers
+
 tc = time.clock()
-search_range = 0.5
-centers = np.linspace(0., 0.9, 10)
-fq_ranges_count = 8
+search_range = 0.4
+# centers = np.linspace(0., 0.975, 40)
+centers=[0.0]
+centers_scores = {}
+fq_ranges_count = 40
+cv_repeats = 10
 for center in centers:
     tc_inner = time.clock()
-    features_run, experiment_name = EG.run_LSD_given_fq_ranges_count_and_given_interval(center - search_range / 2., center + search_range / 2., fq_ranges_count)
+    # features_run, experiment_name = EG.run_LSD_given_fq_ranges_count_and_given_interval(center - search_range / 2., center + search_range / 2., fq_ranges_count)
+    features_run, experiment_name = EG.run_SD_given_fq_ranges_count(fq_ranges_count)
     features_values, answers = get_experiment_data(features_run, experiment_name)
 
-    skf = cross_validation.StratifiedKFold(answers, n_folds=5)
-    gs_clf = grid_search.GridSearchCV(svm.SVC(kernel='linear'), {'C': C_RANGE}, cv=skf)
-    gs_clf.fit(features_values, answers)
-    logging.info('Best parameters are: %s; With score: %.4f; Calc in %.3fs', str(gs_clf.best_params_), gs_clf.best_score_, (time.clock() - tc_inner))
+    cv_scores = []
+    for i in range(cv_repeats):
+        shuffled_values, shuffled_answers = randomize_sampling(features_values, answers)
+        skf = cross_validation.StratifiedKFold(shuffled_answers, n_folds=5)
+        gs_clf = grid_search.GridSearchCV(svm.SVC(kernel='linear'), {'C': C_RANGE}, cv=skf)
+        gs_clf.fit(shuffled_values, shuffled_answers)
+        cv_scores.append(gs_clf.best_score_)
+        logging.info('Best parameters are: %s; With score: %.4f; Center in %.4f; Calc in %.3fs', str(gs_clf.best_params_), gs_clf.best_score_, center, (time.clock() - tc_inner))
+    logging.info('%d times CV score: %f; Stdev: %f', cv_repeats, np.mean(cv_scores), np.std(cv_scores))
+    centers_scores[center] = np.mean(cv_scores)
+
 logging.info('Experiment have taken %.3fs', (time.clock() - tc))
+logging.info('Scores for centers [%s]:\n[%s]', ', '.join([str(center) for center in centers]), ', '.join(['%.4f' % centers_scores[center] for center in centers]))

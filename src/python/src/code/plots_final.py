@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.signal as sig
 
 import src.code.ECG_loader as loader
 import src.code.calculator as clc
@@ -10,7 +11,7 @@ import src.code.WaveletProcessor as WP
 from matplotlib import rc
 font = {'family': 'Verdana',
         'weight': 'normal',
-        'size': 22}
+        'size': 16}
 rc('font', **font)
 
 
@@ -18,8 +19,23 @@ def clip(x):
     const=0.1
     return x[int(len(x)*const):int(len(x)*(1-const))]
 
+def generate_ecg_signal_plot():
+    ecg = loader.PTB_ECG(r'..\..\..\..\data\ptb_database_csv\s0002_re')
+
+    x = ecg.getTiming()
+    y = ecg.getLowFreq()
+    y = clc.filterSignal(y, 1., ecg.getDataFrequency(), filterType='highpass')
+
+    plt.plot(x, y, 'k-', linewidth=2.5)
+    plt.xlim([0., 4.5])
+    plt.xlabel(u'Время, сек')
+    plt.ylabel(u'Интенсивность, $\mu V$')
+    plt.grid(True)
+    plt.savefig(r'..\..\logs\sample_ecg.png')
+    # plt.show()
+
 def general_signal_view():
-    ecg = loader.MouseECG(r'..\..\..\..\data\new_data\2_3.wav')
+    ecg = loader.MouseECG(r'..\..\..\..\data\new_data\1_1.wav')
 
     x = ecg.getTiming()
     y_low = ecg.getLowFreq()
@@ -106,6 +122,16 @@ def R_peak_detection():
     plt.xlim([0., 1.25])
     plt.show()
 
+def draw_wavelet_ricker():
+    width = 100.
+    points = int(10*width)
+    w = sig.ricker(points, width)
+    plt.plot(w, 'k-', )
+    plt.gca().yaxis.set_ticks_position('none')
+    plt.show()
+
+# generate_ecg_signal_plot()
 # general_signal_view()
 # just_fft()
-R_peak_detection()
+# R_peak_detection()
+draw_wavelet_ricker()

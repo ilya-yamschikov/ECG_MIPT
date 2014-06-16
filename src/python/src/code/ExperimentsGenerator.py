@@ -6,6 +6,7 @@ FQ_RANGE = [0., 2000.]
 
 VOID_DESCRIPTION = {'feature': None, 'name': None, 'options': None}
 LSD_OPTIONS = {'normalized': True, 'beat_begin': 0.0, 'beat_end': 1.0,'fq_begin': 25., 'fq_end': 1000., 'calc_type': 'fft'}
+SD_OPTIONS = {'normalized': True, 'begin': 25., 'end': 1000.}
 
 def run_LSD_default_fq_given_interval(beat_begin, beat_end):
     run = []
@@ -52,3 +53,25 @@ def run_LSD_given_fq_ranges_count_and_given_interval(beat_begin, beat_end, range
         run.append(description)
 
     return run, 'py_out_LSD_%d_fq_ranges__beat_interval-[%.2f,%.2f].arff' % (ranges_count, beat_begin, beat_end)
+
+def run_SD_given_fq_ranges_count(ranges_count):
+    run = []
+
+    description_sample = copy.copy(VOID_DESCRIPTION)
+    description_sample['feature'] = 'SpectralDensity'
+    description_sample['name'] = 'SpectralDensity'
+
+    options_sample = copy.copy(SD_OPTIONS)
+
+    fq_intervals = np.linspace(FQ_RANGE[0], FQ_RANGE[1], ranges_count+1)
+
+    for i in range(1, len(fq_intervals)):
+        description = copy.copy(description_sample)
+        description['name'] += str(i)
+        options = copy.copy(options_sample)
+        options['begin'] = fq_intervals[i-1]
+        options['end'] = fq_intervals[i]
+        description['options'] = options
+        run.append(description)
+
+    return run, 'py_out_SD_%d_fq_ranges.arff' % ranges_count

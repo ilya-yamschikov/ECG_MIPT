@@ -150,7 +150,7 @@ class LocalizedSpectralDensity(BasicFeature):
 
     def run(self, ecg, beat_begin=0., beat_end=1., fq_begin=200, fq_end=400, calc_type='wavelet', normalized=True):
         # assert 1. >= beat_end > beat_begin >= 0.
-        assert fq_end > fq_begin > 0
+        assert fq_end > fq_begin >= 0
 
         sampling_fq = ecg.getDataFrequency()
         y_low = ecg.getLowFreq()
