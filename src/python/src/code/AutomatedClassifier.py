@@ -4,7 +4,10 @@ import logging
 import arff
 import copy
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy import interp
 from sklearn import svm, cross_validation, grid_search
+from sklearn.metrics import roc_curve, auc
 
 import src.code.ECG_processor as processor
 from src.code import ExperimentsGenerator as EG
@@ -64,29 +67,82 @@ def randomize_sampling(features_values, answers):
     answers = [answers[i] for i in idxs]
     return features_values, answers
 
-tc = time.clock()
+# tc = time.clock()
+# search_range = 0.4
+# # centers = np.linspace(0., 0.975, 40)
+# centers=[0.0]
+# centers_scores = {}
+# fq_ranges_count = 5
+# cv_repeats = 10
+# for center in centers:
+#     tc_inner = time.clock()
+#     features_run, experiment_name = EG.run_LSD_given_fq_ranges_count_and_given_interval(center - search_range / 2., center + search_range / 2., fq_ranges_count)
+#     # features_run, experiment_name = EG.run_SD_given_fq_ranges_count(fq_ranges_count, fq_begin=25., fq_end=1000.)
+#     features_values, answers = get_experiment_data(features_run, experiment_name)
+#
+#     cv_scores = []
+#     for i in range(cv_repeats):
+#         shuffled_values, shuffled_answers = randomize_sampling(features_values, answers)
+#         skf = cross_validation.StratifiedKFold(shuffled_answers, n_folds=5)
+#         gs_clf = grid_search.GridSearchCV(svm.SVC(kernel='linear'), {'C': C_RANGE}, cv=skf)
+#         gs_clf.fit(shuffled_values, shuffled_answers)
+#         cv_scores.append(gs_clf.best_score_)
+#         logging.info('Best parameters are: %s; With score: %.4f; Center in %.4f; Calc in %.3fs', str(gs_clf.best_params_), gs_clf.best_score_, center, (time.clock() - tc_inner))
+#     logging.info('%d times CV score: %f; Stdev: %f', cv_repeats, np.mean(cv_scores), np.std(cv_scores))
+#     centers_scores[center] = np.mean(cv_scores)
+#
+# logging.info('Experiment have taken %.3fs', (time.clock() - tc))
+# logging.info('Scores for centers [%s]:\n[%s]', ', '.join([str(center) for center in centers]), ', '.join(['%.4f' % centers_scores[center] for center in centers]))
+
+
+# ROC curve
+fq_ranges_count = 5
+cv_repeats = 1
+# features_run, experiment_name = EG.run_SD_given_fq_ranges_count(fq_ranges_count, fq_begin=25., fq_end=1000.)
+center = 0.0
 search_range = 0.4
-# centers = np.linspace(0., 0.975, 40)
-centers=[0.0]
-centers_scores = {}
-fq_ranges_count = 40
-cv_repeats = 10
-for center in centers:
-    tc_inner = time.clock()
-    # features_run, experiment_name = EG.run_LSD_given_fq_ranges_count_and_given_interval(center - search_range / 2., center + search_range / 2., fq_ranges_count)
-    features_run, experiment_name = EG.run_SD_given_fq_ranges_count(fq_ranges_count)
-    features_values, answers = get_experiment_data(features_run, experiment_name)
+features_run, experiment_name = EG.run_LSD_given_fq_ranges_count_and_given_interval(center - search_range / 2., center + search_range / 2., fq_ranges_count)
+features_values, answers = get_experiment_data(features_run, experiment_name)
 
-    cv_scores = []
-    for i in range(cv_repeats):
-        shuffled_values, shuffled_answers = randomize_sampling(features_values, answers)
-        skf = cross_validation.StratifiedKFold(shuffled_answers, n_folds=5)
-        gs_clf = grid_search.GridSearchCV(svm.SVC(kernel='linear'), {'C': C_RANGE}, cv=skf)
-        gs_clf.fit(shuffled_values, shuffled_answers)
-        cv_scores.append(gs_clf.best_score_)
-        logging.info('Best parameters are: %s; With score: %.4f; Center in %.4f; Calc in %.3fs', str(gs_clf.best_params_), gs_clf.best_score_, center, (time.clock() - tc_inner))
-    logging.info('%d times CV score: %f; Stdev: %f', cv_repeats, np.mean(cv_scores), np.std(cv_scores))
-    centers_scores[center] = np.mean(cv_scores)
+# get best C:
+skf = cross_validation.StratifiedKFold(answers, n_folds=5)
+gs_clf = grid_search.GridSearchCV(svm.SVC(kernel='linear'), {'C': C_RANGE}, cv=skf)
+gs_clf.fit(features_values, answers)
+right_C = gs_clf.best_params_['C']
+logging.info('Best C: %f; Classification: %f', right_C, gs_clf.best_score_)
 
-logging.info('Experiment have taken %.3fs', (time.clock() - tc))
-logging.info('Scores for centers [%s]:\n[%s]', ', '.join([str(center) for center in centers]), ', '.join(['%.4f' % centers_scores[center] for center in centers]))
+all_tpr = []
+all_fpr = []
+for i in range(cv_repeats):
+    mean_tpr = 0.0
+    mean_fpr = np.linspace(0, 1, 100)
+
+    shuffled_values, shuffled_answers = randomize_sampling(features_values, answers)
+    shuffled_values = np.array(shuffled_values)
+    shuffled_answers = np.array(shuffled_answers)
+    skf = cross_validation.StratifiedKFold(shuffled_answers, n_folds=5)
+    classifier = svm.SVC(kernel='linear', C=right_C, probability=True)
+    for (train, test) in skf:
+        probas_ = classifier.fit(shuffled_values[train], shuffled_answers[train]).predict_proba(shuffled_values[test])
+        fpr, tpr, thresholds = roc_curve(shuffled_answers[test], probas_[:, 1])
+        mean_tpr += interp(mean_fpr, fpr, tpr)
+        mean_tpr[0] = 0.0
+        roc_auc = auc(fpr, tpr)
+
+    mean_tpr /= len(skf)
+    mean_tpr[-1] = 1.0
+    mean_auc = auc(mean_fpr, mean_tpr)
+    all_tpr.append(mean_tpr)
+    all_fpr.append(mean_fpr)
+    plt.plot(mean_fpr, mean_tpr, 'k-')
+    logging.info('Plot: x = [%s]; y = [%s]', ', '.join(['%.4f' % fpr for fpr in  mean_fpr]), ', '.join(['%.6f' % tpr for tpr in  mean_tpr]))
+#
+# tot_tpr = 0.0
+# tot_fpr = np.linspace(0, 1, 100)
+# for tpr, fpr in zip(all_tpr, all_fpr):
+#     tot_tpr += interp(tot_fpr, fpr, tpr)
+#     tot_tpr[0] = 0.
+# tot_tpr /= len(tot_tpr)
+# tot_tpr[-1] = 1.0
+# plt.plot(tot_fpr, tot_tpr, 'k--')
+plt.show()

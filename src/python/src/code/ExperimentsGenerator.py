@@ -54,7 +54,7 @@ def run_LSD_given_fq_ranges_count_and_given_interval(beat_begin, beat_end, range
 
     return run, 'py_out_LSD_%d_fq_ranges__beat_interval-[%.2f,%.2f].arff' % (ranges_count, beat_begin, beat_end)
 
-def run_SD_given_fq_ranges_count(ranges_count):
+def run_SD_given_fq_ranges_count(ranges_count, fq_begin=0., fq_end=2000.):
     run = []
 
     description_sample = copy.copy(VOID_DESCRIPTION)
@@ -74,4 +74,4 @@ def run_SD_given_fq_ranges_count(ranges_count):
         description['options'] = options
         run.append(description)
 
-    return run, 'py_out_SD_%d_fq_ranges.arff' % ranges_count
+    return run, 'py_out_SD_%d_fq_ranges_on_[%.1f,%.1f].arff' % (ranges_count, fq_begin, fq_end)
